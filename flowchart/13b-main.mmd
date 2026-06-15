@@ -1,0 +1,51 @@
+--- 
+title: Rutina main de la aplicación (2)
+---
+flowchart TB
+    %% Estilos de diseño
+    classDef trigger fill:#fff3cd,stroke:#856404,stroke-width:1px;
+    classDef dialog fill:#cce5ff,stroke:#004085,stroke-width:1px;
+    classDef event fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+
+    subgraph InicializacionDialogo [1. Disparador de Edición]
+    direction TB
+        A([Llamada a textPromptAssign key, message]) --> B[Llamar textPromptDialog]
+        
+        %% Configuración del modal
+        B --> C["Inyectar texto actual en textInput.value"]
+        C --> D["Inyectar etiqueta en messageInput.innerText"]
+        D --> E["Desplegar ventana modal nativa:<br>textPrompt.showModal()"]
+    end
+    class A,B,C,D,E dialog;
+
+    %% Registro del Evento Asíncrono
+    E --> F["Suscribir Listener asíncrono:<br>textPrompt.addEventListener('close') con option ONCE"]
+
+    subgraph CapturaRespuesta [2. Captura y Procesamiento al Cerrar Modal]
+    direction TB
+        F --> G([Evento 'close' Detectado])
+        G --> H{"¿El botón pulsado es distinto a 'cancel'<br>Y componentEdit es válido?"}
+        
+        H -- Sí --> I["Capturar texto eliminando espacios:<br>textInput.value.trim()"]
+        I --> J{"¿El texto resultante contiene caracteres?<br>text.length > 0"}
+        
+        J -- Sí --> K["Guardar opción en el objeto:<br>componentEdit.options[key] = text"]
+        K --> L[Ejecutar validación nativa del objeto:<br>componentEdit.validateOptions]
+        
+        %% Cierre común de variables
+        J -- No --> M[Ignorar cambios en el componente]
+        H -- No --> M
+        
+        L & M --> N["Limpiar referencia temporal del editor:<br>componentEdit = null"]
+        N --> O["Refrescar gráficos en el Canvas:<br>renderer.draw()"]
+    end
+    class G,H,I,J,K,L,M,N,O event;
+
+    %% Eventos Huérfanos directos del DOM
+    subgraph EventosMiscelaneos [3. Handlers Adicionales]
+    direction TB
+        P([Click sobre aboutWindowClose]) --> Q[Ejecutar aboutWindow.close]
+        R([Llamada a snap v, gr]) --> S["Calcular coordenada fija en rejilla:<br>Math.round(v / gr) * gr"]
+        T([Llamada a closeConfirm]) --> U["Retornar traducción correspondiente a globalLang"]
+    end
+    class P,Q,R,S,T,U trigger;

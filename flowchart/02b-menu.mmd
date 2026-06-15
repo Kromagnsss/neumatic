@@ -1,0 +1,24 @@
+---
+title: Control del menú de la aplicación 2
+---
+flowchart TD
+
+A[Click documento]
+--> B[Buscar a data-action]
+
+B --> C{item existe}
+
+C -->|No| Z[Fin]
+
+C -->|Si| D[Obtener action]
+
+D --> E{action en actions}
+
+E -->|Si| F[Ejecutar actions action]
+E -->|No| G[Cerrar submenus]
+
+F --> G
+
+G --> H[querySelectorAll submenu]
+H --> I[remove active]
+I --> Z[Fin]

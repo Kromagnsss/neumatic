@@ -1,0 +1,18 @@
+---
+title: Clase Manometer
+---
+flowchart TB
+    F1["Inicio flip"]
+    F2{"Flipped"}
+
+    F3["flipped false"]
+    F4["flipped true"]
+
+    F5["Fin"]
+
+    F1 --> F2
+    F2 -->|Si| F3
+    F2 -->|No| F4
+    F3 --> F5
+    F4 --> F5
+

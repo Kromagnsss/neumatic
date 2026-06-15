@@ -1,0 +1,270 @@
+---
+title: Clase Cylinder1
+---
+flowchart LR
+
+subgraph VALIDATE_OPTIONS
+direction TB
+    V1["Inicio validateOptions"]
+
+    V2["Convertir massLoad a numero"]
+
+    V3{"Es NaN"}
+    V4["Asignar 0"]
+
+    V5{"MassLoad mayor que 100"}
+    V6["Asignar 100"]
+
+    V7{"MassLoad menor que 0"}
+    V8["Asignar 0"]
+
+    V9["Actualizar frictionStatic"]
+    V10["Actualizar frictionDynamic"]
+
+    V11["Fin validateOptions"]
+
+    V1 --> V2
+    V2 --> V3
+
+    V3 -->|Si| V4
+    V3 -->|No| V5
+
+    V4 --> V5
+
+    V5 -->|Si| V6
+    V5 -->|No| V7
+
+    V6 --> V7
+
+    V7 -->|Si| V8
+    V7 -->|No| V9
+
+    V8 --> V9
+
+    V9 --> V10
+    V10 --> V11
+end
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+
+    U2["Obtener via1"]
+    U3["Buscar node1"]
+
+    U4["Calcular volumen camara"]
+
+    U5{"mass1 igual cero"}
+    U6["Inicializar mass1"]
+
+    U7["Calcular flujo RK4"]
+    U8["Obtener dm"]
+
+    U9["Actualizar masa nodo"]
+    U10["Actualizar masa cilindro"]
+
+    U11["Actualizar presion nodo"]
+    U12["Actualizar presion camara"]
+
+    U13["Calcular movimiento piston"]
+
+    U14{"Posicion menor que minimo"}
+    U15["Posicion igual minimo"]
+    U16["Velocidad igual cero"]
+
+    U17{"Posicion mayor que maximo"}
+    U18["Posicion igual maximo"]
+    U19["Velocidad igual cero"]
+
+    U20["Actualizar desplazamiento visual"]
+
+    U21["Actualizar color1"]
+    U22["Actualizar color1w"]
+
+    U23["Fin update"]
+
+    U1 --> U2
+    U2 --> U3
+    U3 --> U4
+
+    U4 --> U5
+    U5 -->|Si| U6
+    U5 -->|No| U7
+    U6 --> U7
+
+    U7 --> U8
+    U8 --> U9
+    U9 --> U10
+    U10 --> U11
+    U11 --> U12
+
+    U12 --> U13
+
+    U13 --> U14
+
+    U14 -->|Si| U15
+    U14 -->|No| U17
+
+    U15 --> U16
+    U16 --> U17
+
+    U17 -->|Si| U18
+    U17 -->|No| U20
+
+    U18 --> U19
+    U19 --> U20
+
+    U20 --> U21
+    U21 --> U22
+    U22 --> U23
+end
+
+subgraph PISTON_MOVEMENT_LOOP
+direction TB
+    M1["Inicio iteracion"]
+
+    M2["Calcular volumen"]
+    M3["Calcular presion"]
+
+    M4["Calcular fuerza piston"]
+    M5["Calcular fuerza muelle"]
+
+    M6["Calcular fuerza neta"]
+
+    M7{"Velocidad igual cero"}
+
+    M8{"Fuerza neta positiva"}
+    M9{"Supera friccion estatica"}
+
+    M10["Aplicar friccion dinamica"]
+    M11["Fuerza neta igual cero"]
+
+    M12["Calcular velocidad inicial"]
+
+    M13{"Velocidad positiva"}
+
+    M14["Aplicar friccion dinamica"]
+    M15["Calcular cambio velocidad"]
+
+    M16{"Cambio anula velocidad"}
+
+    M17["Velocidad igual cero"]
+    M18["Actualizar velocidad"]
+
+    M19["Actualizar velocidad retroceso"]
+
+    M20["Actualizar posicion"]
+
+    M21["Fin iteracion"]
+
+    M1 --> M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
+
+    M6 --> M7
+
+    M7 -->|Si| M8
+    M7 -->|No| M13
+
+    M8 -->|Si| M9
+    M8 -->|No| M12
+
+    M9 -->|Si| M10
+    M9 -->|No| M11
+
+    M10 --> M12
+    M11 --> M12
+
+    M12 --> M20
+
+    M13 -->|Si| M14
+    M13 -->|No| M19
+
+    M14 --> M15
+    M15 --> M16
+
+    M16 -->|Si| M17
+    M16 -->|No| M18
+
+    M17 --> M20
+    M18 --> M20
+
+    M19 --> M20
+
+    M20 --> M21
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+
+    D2["Dibujar puerto"]
+    D3["Draw Pressure"]
+    D4["Draw Camera"]
+    D5["Draw Piston"]
+
+    D6["Fin draw"]
+
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    D4 --> D5
+    D5 --> D6
+end
+
+subgraph DRAW_PRESSURE
+direction TB
+    P1["Inicio drawPressure"]
+
+    P2["Rellenar camara segun presion"]
+
+    P3["Fin"]
+
+    P1 --> P2
+    P2 --> P3
+end
+
+subgraph DRAW_PISTON
+direction TB
+    DP1["Inicio drawPiston"]
+
+    DP2["Calcular posicion visual"]
+
+    DP3["Dibujar piston"]
+    DP4["Dibujar vastago"]
+    DP5["Dibujar extremo"]
+
+    DP6["Draw Spring"]
+
+    DP7["Fin"]
+
+    DP1 --> DP2
+    DP2 --> DP3
+    DP3 --> DP4
+    DP4 --> DP5
+    DP5 --> DP6
+    DP6 --> DP7
+end
+
+subgraph DRAW_SPRING
+direction TB
+    S1["Inicio drawSpring"]
+
+    S2["Calcular paso del muelle"]
+
+    S3["Dibujar tramo 1"]
+    S4["Dibujar tramo 2"]
+    S5["Dibujar tramo 3"]
+    S6["Dibujar tramo final"]
+
+    S7["Fin"]
+
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 --> S5
+    S5 --> S6
+    S6 --> S7
+end

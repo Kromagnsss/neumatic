@@ -1,0 +1,47 @@
+---
+title: Control de renderizado de la pantalla
+---
+flowchart TB
+    %% Estilos de diseño
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef mainDraw fill:#fff3cd,stroke:#856404,stroke-width:1px;
+    classDef subDraw fill:#cce5ff,stroke:#004085,stroke-width:1px;
+
+    %% --- CONSTRUCTOR ---
+    subgraph Inicializacion [1. Inicialización del Renderer]
+    direction TB
+        A([Instanciar Renderer canvas, engine]) --> B[Vincular Canvas y Contexto 2D]
+        B --> C[Guardar referencia de Engine]
+        C --> D[selectedId = null]
+    end
+    class A,B,C,D init;
+
+    %% --- MÉTODO PRINCIPAL DRAW ---
+    subgraph PipelinePrincipal [2. Método draw - Pipeline Principal]
+    direction TB
+        E([Inicio draw]) --> F["Limpiar pantalla:<br>Fondo Blanco #fff"]
+        F --> G["Dibujar encabezado de texto:<br>'Picuino Pneumatic Simulator v' + programVersion"]
+        G --> H[Llamar drawPosition mousePosition]
+        H --> I[Iterar por cada comp en engine.components]
+        I --> J[Ejecutar comp.draw ctx]
+    end
+    class E,F,G,H,I,J mainDraw;
+
+    %% --- MÉTODO AUXILIAR DRAW POSITION ---
+    subgraph DetallePosicion [3. Método drawPosition position]
+    direction TB
+        K([Inicio drawPosition]) --> L{"¿engine.haveTeacherComp()?"}
+        L -- Sí --> M["Color de fondo Blanco (#fff)"]
+        L -- No --> N["Color de fondo Verde claro (#afa)"]
+        M & N --> O[Dibujar rectángulo indicador de fondo]
+        O --> P{"¿position !== null?"}
+        P -- Sí --> Q["Redondear coordenadas con Math.round"]
+        Q --> R["Dibujar texto 'X,Y' centrado en la pantalla"]
+        P -- No --> S[Finalizar método sin dibujar texto]
+        R --> S
+    end
+    class K,L,M,N,O,P,Q,R,S subDraw;
+
+    %% Enlaces de dependencia del flujo
+    Inicializacion --> PipelinePrincipal
+    H -.-> K

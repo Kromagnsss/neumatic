@@ -1,0 +1,121 @@
+---
+title: Clase Valve32b
+---
+flowchart LR
+
+subgraph UPDATE ["Update"]
+direction TB
+    U1["Inicio update"]
+    U2["Obtener via1, via2, via3"]
+    U3["Buscar node1, node2, node3"]
+
+    U4{"shift.pos = max"}
+    U5["timeActive += dt * 1000"]
+    U6{"timeActive > maxTimeActive"}
+    U7["active = false"]
+
+    U8{"shift.pos = min"}
+    U9["timeActive = 0"]
+
+    U10{"flipped"}
+
+    U11{"shift.pos = min"}
+    U12["Flow node1 ↔ node2"]
+
+    U13{"shift.pos = max"}
+    U14["Flow node2 ↔ node3"]
+
+    U15{"shift.pos = min"}
+    U16["Flow node2 ↔ node3"]
+
+    U17{"shift.pos = max"}
+    U18["Flow node1 ↔ node2"]
+
+    U19{"active"}
+    U20["Incrementar shift.pos"]
+    U21["Limitar a max"]
+
+    U22["Decrementar shift.pos"]
+    U23["Limitar a min"]
+
+    U24["Actualizar color1"]
+    U25["Actualizar color2"]
+    U26["Actualizar color3"]
+    U27["Fin update"]
+
+    U1 --> U2 --> U3 --> U4
+
+    U4 -->|Si| U5 --> U6
+    U6 -->|Si| U7 --> U8
+    U6 -->|No| U8
+    U4 -->|No| U8
+
+    U8 -->|Si| U9 --> U10
+    U8 -->|No| U10
+
+    U10 -->|Si| U11
+    U11 -->|Si| U12 --> U13
+    U11 -->|No| U13
+    U13 -->|Si| U14 --> U19
+    U13 -->|No| U19
+
+    U10 -->|No| U15
+    U15 -->|Si| U16 --> U17
+    U15 -->|No| U17
+    U17 -->|Si| U18 --> U19
+    U17 -->|No| U19
+
+    U19 -->|Si| U20 --> U21 --> U24
+    U19 -->|No| U22 --> U23 --> U24
+
+    U24 --> U25 --> U26 --> U27
+end
+
+
+subgraph DRAWBODY ["DrawBody"]
+direction TB
+    D1["Inicio drawBody"]
+    D2["posX = x + shift"]
+
+    D3{"flipped"}
+
+    D4{"shift = min"}
+    D5["Dibujar estado reposo flipped"]
+    D6["Dibujar estado accionado flipped"]
+
+    D7{"shift = min"}
+    D8["Dibujar estado reposo normal"]
+    D9["Dibujar estado accionado normal"]
+
+    D10["Dibujar rectángulo derecho"]
+    D11["Dibujar rectángulo izquierdo"]
+    D12["Dibujar muelle"]
+    D13["Dibujar pulsador"]
+    D14["Fin drawBody"]
+
+    D1 --> D2 --> D3
+
+    D3 -->|Si| D4
+    D4 -->|Si| D5 --> D10
+    D4 -->|No| D6 --> D10
+
+    D3 -->|No| D7
+    D7 -->|Si| D8 --> D10
+    D7 -->|No| D9 --> D10
+
+    D10 --> D11 --> D12 --> D13 --> D14
+end
+
+
+subgraph FLIP ["Flip"]
+direction TB
+    F1["Inicio flip"]
+    F2{"flipped"}
+    F3["flipped = false"]
+    F4["flipped = true"]
+    F5["Fin flip"]
+
+    F1 --> F2
+    F2 -->|Si| F3 --> F5
+    F2 -->|No| F4 --> F5
+end

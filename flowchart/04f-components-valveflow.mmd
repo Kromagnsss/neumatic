@@ -1,0 +1,98 @@
+---
+title: Clase ValveFlow
+---
+flowchart LR
+
+subgraph VALIDATE_OPTIONS
+direction TB
+    V1["Inicio validateOptions"]
+    V2["Convertir conductance a numero"]
+
+    V3{"Es NaN"}
+    V4["Asignar 100"]
+
+    V5{"Conductance mayor que 1000"}
+    V6["Asignar 1000"]
+
+    V7{"Conductance menor que 10"}
+    V8["Asignar 10"]
+
+    V9["Fin validateOptions"]
+
+    V1 --> V2
+    V2 --> V3
+
+    V3 -->|Si| V4
+    V3 -->|No| V5
+
+    V4 --> V5
+
+    V5 -->|Si| V6
+    V5 -->|No| V7
+
+    V6 --> V7
+
+    V7 -->|Si| V8
+    V7 -->|No| V9
+
+    V8 --> V9
+end
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+    U2["Obtener via1 y via2"]
+    U3["Buscar node1 y node2"]
+
+    U4["Compute Flow"]
+
+    U5["Calcular presion media"]
+
+    U6["Actualizar color"]
+
+    U7["Fin update"]
+
+    U1 --> U2
+    U2 --> U3
+    U3 --> U4
+    U4 --> U5
+    U5 --> U6
+    U6 --> U7
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+
+    D2["Dibujar puerto 1"]
+    D3["Dibujar puerto 2"]
+
+    D4["Draw Valve Flow"]
+
+    D5["Fin draw"]
+
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    D4 --> D5
+end
+
+subgraph DRAW_VALVE_FLOW
+direction TB
+    F1["Inicio drawValveFlow"]
+
+    F2["Dibujar conducto vertical"]
+
+    F3["Dibujar arco izquierdo"]
+    F4["Dibujar arco derecho"]
+
+    F5["Dibujar flecha de regulacion"]
+
+    F6["Fin"]
+
+    F1 --> F2
+    F2 --> F3
+    F3 --> F4
+    F4 --> F5
+    F5 --> F6
+end

@@ -1,0 +1,39 @@
+---
+title: Clase Escape
+---
+flowchart LR
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+
+    U2["Obtener via1"]
+    U3["Buscar node"]
+
+    U4["Asignar presion de escape al nodo"]
+
+    U5["Actualizar masa del nodo"]
+
+    U6["Fin update"]
+
+    U1 --> U2
+    U2 --> U3
+    U3 --> U4
+    U4 --> U5
+    U5 --> U6
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+
+    D2["Dibujar puerto"]
+
+    D3["Dibujar simbolo de escape"]
+
+    D4["Fin draw"]
+
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+end

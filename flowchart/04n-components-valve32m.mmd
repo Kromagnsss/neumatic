@@ -1,0 +1,104 @@
+---
+title: Clase Valve32m
+---
+flowchart LR
+
+subgraph UPDATE ["Update"]
+direction TB
+    U1["Inicio update"]
+    U2["Obtener via1, via2, via3"]
+    U3["Buscar node1, node2, node3"]
+
+    U4{"flipped"}
+
+    U5{"shift.pos = min"}
+    U6["Flow node1 ↔ node2"]
+
+    U7{"shift.pos = max"}
+    U8["Flow node2 ↔ node3"]
+
+    U9{"shift.pos = min"}
+    U10["Flow node2 ↔ node3"]
+
+    U11{"shift.pos = max"}
+    U12["Flow node1 ↔ node2"]
+
+    U13{"active"}
+
+    U14["Incrementar shift.pos"]
+    U15["Limitar a max"]
+
+    U16["Decrementar shift.pos"]
+    U17["Limitar a min"]
+
+    U18["Actualizar color1"]
+    U19["Actualizar color2"]
+    U20["Actualizar color3"]
+    U21["Fin update"]
+
+    U1 --> U2 --> U3 --> U4
+
+    U4 -->|Si| U5
+    U5 -->|Si| U6 --> U7
+    U5 -->|No| U7
+    U7 -->|Si| U8 --> U13
+    U7 -->|No| U13
+
+    U4 -->|No| U9
+    U9 -->|Si| U10 --> U11
+    U9 -->|No| U11
+    U11 -->|Si| U12 --> U13
+    U11 -->|No| U13
+
+    U13 -->|Si| U14 --> U15 --> U18
+    U13 -->|No| U16 --> U17 --> U18
+
+    U18 --> U19 --> U20 --> U21
+end
+
+subgraph DRAWBODY ["DrawBody"]
+direction TB
+    D1["Inicio drawBody"]
+    D2["posX = x + shift"]
+
+    D3{"flipped"}
+
+    D4{"shift = min"}
+    D5["Dibujar estado reposo flipped"]
+    D6["Dibujar estado accionado flipped"]
+
+    D7{"shift = min"}
+    D8["Dibujar estado reposo normal"]
+    D9["Dibujar estado accionado normal"]
+
+    D10["Dibujar rectángulo derecho"]
+    D11["Dibujar rectángulo izquierdo"]
+    D12["Dibujar muelle"]
+    D13["Dibujar palanca"]
+    D14["Fin drawBody"]
+
+    D1 --> D2 --> D3
+
+    D3 -->|Si| D4
+    D4 -->|Si| D5 --> D10
+    D4 -->|No| D6 --> D10
+
+    D3 -->|No| D7
+    D7 -->|Si| D8 --> D10
+    D7 -->|No| D9 --> D10
+
+    D10 --> D11 --> D12 --> D13 --> D14
+end
+
+subgraph FLIP ["Flip"]
+direction TB
+    F1["Inicio flip"]
+    F2{"flipped"}
+    F3["flipped = false"]
+    F4["flipped = true"]
+    F5["Fin flip"]
+
+    F1 --> F2
+    F2 -->|Si| F3 --> F5
+    F2 -->|No| F4 --> F5
+end

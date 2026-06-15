@@ -1,0 +1,45 @@
+---
+title: Control de la simulación 1
+---
+flowchart TB
+    %% Estilos de diseño
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef control fill:#cce5ff,stroke:#004085,stroke-width:1px;
+    classDef reset fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+
+    %% simStep
+    A([Llamada a simulationStep]) --> B["drawMode = null <br> stepTime = 250"]
+    B --> C{"¿simulationActive !== true?"}
+    C -- Sí --> D[Llamar simulationInit]
+    C -- No --> E{"¿animationID === null?"}
+    E -- Sí --> F["Solicitar Frame: <br> animationID = requestAnimationFrame(simulationRender)"]
+    E -- No --> G([Fin del Step])
+    F --> G
+
+    %% simInit
+    D --> H["drawMode = null <br> engine.createNodes()"]
+    H --> I["Iniciar Bucle: <br> animationID = requestAnimationFrame(simulationRender)"]
+    I --> J["simulationActive = true"]
+
+    %% simStop y simContinue
+    K([Llamada a simulationStop]) --> L["drawMode = null <br> simulationActive = false"]
+    L --> M{"¿animationID !== null?"}
+    M -- Sí --> N["Detener Animación: <br> cancelAnimationFrame(animationID) <br> animationID = null"]
+    M -- No --> O([Fin del Stop])
+    N --> O
+
+    P([Llamada a simulationContinue]) --> Q["drawMode = null <br> simulationActive = true"]
+    Q --> R{"¿animationID === null?"}
+    R -- Sí --> S["Reanudar Animación: <br> animationID = requestAnimationFrame(simulationRender)"]
+    R -- No --> T([Fin del Continue])
+    S --> T
+
+    %% simReset
+    U([Llamada a simulationReset]) --> V[Ejecutar simulationStop]
+    V --> W[Iterar componentes y ejecutar comp.reset]
+    W --> X[Recrear topología: engine.createNodes]
+    X --> Y[Limpiar Canvas: renderer.draw]
+
+    class D,H,I,J init;
+    class A,B,C,E,F,G,K,L,M,N,O,P,Q,R,S,T control;
+    class U,V,W,X,Y reset;

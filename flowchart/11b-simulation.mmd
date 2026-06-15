@@ -1,0 +1,45 @@
+---
+title: Control de la simulación 2
+---
+flowchart TD
+    %% Estilos de diseño
+    classDef render fill:#fff3cd,stroke:#856404,stroke-width:1px;
+    classDef physics fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+    classDef loop fill:#cce5ff,stroke:#004085,stroke-width:1px;
+
+    A([Entrada: simulationRender ms]) --> B{"¿ms - simulationTime > 50?"}
+    B -- Sí --> C["Ajustar delta máximo: <br> simulationTime = ms - 50"]
+    B -- No --> D["Calcular lapso: <br> animationTime = ms - simulationTime"]
+    C --> D
+    
+    D --> E["Capturar tiempo inicial del procesador: <br> init = performance.now()"]
+    
+    %% Bucle Interno Físico
+    E --> F{"¿simulationTime < ms?"}
+    F -- "Sí (Bucle de Física de 1ms)" --> G["engine.render(0.001) <br> Paso fijo de 1ms"]
+    G --> H["Avanzar tiempo sim: <br> simulationTime += 1"]
+    H --> I{"¿stepTime > 0?"}
+    I -- Sí --> J["stepTime -= 1"]
+    I -- No --> F
+    J --> F
+
+    %% Fin del Bucle Físico
+    F -- "No (Física al día)" --> K{"¿stepTime === 0?"}
+    K -- Sí --> L["Finalizar ráfaga: <br> stepTime = null <br> animationID = null"]
+    K -- No --> M{"¿simulationActive == true?"}
+    L --> M
+    
+    %% Dibujo y Métricas
+    M -- Sí --> N[Actualizar Pantalla: renderer.draw]
+    M -- No --> O["Calcular rendimiento:<br>renderTime y carga promedio animationLoad"]
+    N --> O
+    
+    %% Recursión / Siguiente Frame
+    O --> P{"¿animationID Y simulationActive son verdaderos?"}
+    P -- Sí --> Q["Programar próximo cuadro: <br> requestAnimationFrame(simulationRender)"]
+    P -- No --> R([Fin del ciclo por este frame])
+    Q --> R
+
+    class A,B,C,D,E,K,L,M,N,O,P,Q,R render;
+    class G,H physics;
+    class F,I,J loop;

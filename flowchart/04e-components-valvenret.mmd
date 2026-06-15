@@ -1,0 +1,139 @@
+---
+title: Clase ValveNret
+---
+flowchart LR
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+    U2["Obtener via1 y via2"]
+    U3["Buscar node1 y node2"]
+
+    U4{"Flipped"}
+
+    U5["dpress igual P2 menos P1"]
+    U6["dpress igual P1 menos P2"]
+
+    U7{"dpress mayor que minPressure"}
+
+    U8["Compute Flow"]
+    U9["active igual true"]
+
+    U10["active igual false"]
+
+    U11["Actualizar color1"]
+    U12["Actualizar color2"]
+
+    U13["Fin update"]
+
+    U1 --> U2
+    U2 --> U3
+    U3 --> U4
+
+    U4 -->|Si| U5
+    U4 -->|No| U6
+
+    U5 --> U7
+    U6 --> U7
+
+    U7 -->|Si| U8
+    U8 --> U9
+    U9 --> U11
+
+    U7 -->|No| U10
+    U10 --> U11
+
+    U11 --> U12
+    U12 --> U13
+end
+
+subgraph FLIP
+direction TB
+    F1["Inicio flip"]
+
+    F2{"Flipped"}
+
+    F3["flipped igual false"]
+    F4["flipped igual true"]
+
+    F5["Fin flip"]
+
+    F1 --> F2
+
+    F2 -->|Si| F3
+    F2 -->|No| F4
+
+    F3 --> F5
+    F4 --> F5
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+
+    D2["Dibujar puerto 1"]
+    D3["Dibujar puerto 2"]
+
+    D4{"Flipped"}
+
+    D5["Draw Valve Nret Flipped"]
+    D6["Draw Valve Nret"]
+
+    D7["Fin draw"]
+
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+
+    D4 -->|Si| D5
+    D4 -->|No| D6
+
+    D5 --> D7
+    D6 --> D7
+end
+
+subgraph DRAW_VALVE_NRET
+direction TB
+    N1["Inicio drawValveNret"]
+
+    N2["Dibujar simbolo valvula"]
+
+    N3{"Active"}
+
+    N4["Dibujar bola cerrada"]
+    N5["Dibujar bola abierta"]
+
+    N6["Fin"]
+
+    N1 --> N2
+    N2 --> N3
+
+    N3 -->|No| N4
+    N3 -->|Si| N5
+
+    N4 --> N6
+    N5 --> N6
+end
+
+subgraph DRAW_VALVE_NRET_FLIPPED
+direction TB
+    NF1["Inicio drawValveNretFlipped"]
+
+    NF2["Dibujar simbolo invertido"]
+
+    NF3{"Active"}
+
+    NF4["Dibujar bola cerrada"]
+    NF5["Dibujar bola abierta"]
+
+    NF6["Fin"]
+
+    NF1 --> NF2
+    NF2 --> NF3
+
+    NF3 -->|No| NF4
+    NF3 -->|Si| NF5
+
+    NF4 --> NF6
+    NF5 --> NF6
+end

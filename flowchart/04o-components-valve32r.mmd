@@ -1,0 +1,143 @@
+---
+title: Clase Valve32r
+---
+flowchart LR
+
+subgraph VALIDATE_OPTIONS
+direction TB
+    V1["Inicio validateOptions"]
+    V2{"reference.length > 3"}
+    V3["Recortar a 3 caracteres"]
+    V4["Fin"]
+
+    V1 --> V2
+    V2 -->|Sí| V3 --> V4
+    V2 -->|No| V4
+end
+
+subgraph RESET
+direction TB
+    R1["Inicio reset"]
+    R2["shift.pos = shift.min"]
+    R3["color1 = defaultColor"]
+    R4["color2 = defaultColor"]
+    R5["color3 = defaultColor"]
+    R6["Fin"]
+
+    R1 --> R2 --> R3 --> R4 --> R5 --> R6
+end
+
+subgraph FLIP
+direction TB
+    F1["Inicio flip"]
+    F2{"flipped"}
+    F3["flipped = false"]
+    F4["flipped = true"]
+    F5["Fin"]
+
+    F1 --> F2
+    F2 -->|Sí| F3 --> F5
+    F2 -->|No| F4 --> F5
+end
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+    U2["Obtener vias"]
+    U3["Buscar node1 node2 node3"]
+    U4{"flipped"}
+
+    U5{"shift.pos == min"}
+    U6["Flow node1 -> node2"]
+
+    U7{"shift.pos == max"}
+    U8["Flow node2 -> node3"]
+
+    U9{"shift.pos == min"}
+    U10["Flow node2 -> node3"]
+
+    U11{"shift.pos == max"}
+    U12["Flow node1 -> node2"]
+
+    U13{"active"}
+    U14["Incrementar shift.pos"]
+    U15["Limitar a shift.max"]
+
+    U16["Decrementar shift.pos"]
+    U17["Limitar a shift.min"]
+
+    U18["Actualizar color1"]
+    U19["Actualizar color2"]
+    U20["Actualizar color3"]
+    U21["Fin"]
+
+    U1 --> U2 --> U3 --> U4
+
+    U4 -->|Sí| U5
+    U5 -->|Sí| U6
+    U5 -->|No| U7
+    U6 --> U7
+    U7 -->|Sí| U8
+    U7 -->|No| U13
+    U8 --> U13
+
+    U4 -->|No| U9
+    U9 -->|Sí| U10
+    U9 -->|No| U11
+    U10 --> U11
+    U11 -->|Sí| U12
+    U11 -->|No| U13
+    U12 --> U13
+
+    U13 -->|Sí| U14 --> U15 --> U18
+    U13 -->|No| U16 --> U17 --> U18
+
+    U18 --> U19 --> U20 --> U21
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+    D2["Draw port 1"]
+    D3["Draw port 2"]
+    D4["Draw port 3"]
+    D5["Draw body"]
+    D6["Fin"]
+
+    D1 --> D2 --> D3 --> D4 --> D5 --> D6
+end
+
+subgraph DRAW_BODY
+direction TB
+    B1["Inicio drawBody"]
+    B2["Calcular posX"]
+    B3{"flipped"}
+
+    B4{"shift == min"}
+    B5["Dibujar estado flipped reposo"]
+
+    B6["Dibujar estado flipped activado"]
+
+    B7{"shift == min"}
+    B8["Dibujar estado normal reposo"]
+
+    B9["Dibujar estado normal activado"]
+
+    B10["Dibujar rectángulos"]
+    B11["Dibujar muelle"]
+    B12["Dibujar rodillo"]
+    B13["Mostrar referencia"]
+    B14["Fin"]
+
+    B1 --> B2 --> B3
+
+    B3 -->|Sí| B4
+    B4 -->|Sí| B5 --> B10
+    B4 -->|No| B6 --> B10
+
+    B3 -->|No| B7
+    B7 -->|Sí| B8 --> B10
+    B7 -->|No| B9 --> B10
+
+    B10 --> B11 --> B12 --> B13 --> B14
+end

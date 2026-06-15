@@ -1,0 +1,112 @@
+---
+title: Clase Valve52m
+---
+flowchart LR
+
+subgraph RESET
+direction TB
+    R1["Inicio reset"]
+    R2["shift.pos = shift.min"]
+    R3["color1 = defaultColor"]
+    R4["color2 = defaultColor"]
+    R5["color3 = defaultColor"]
+    R6["color4 = defaultColor"]
+    R7["color5 = defaultColor"]
+    R8["Fin"]
+
+    R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7 --> R8
+end
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+    U2["Obtener vias"]
+    U3["Buscar node1 node2 node3 node4 node5"]
+
+    U4{"shift.pos == min"}
+    U5["Flow node1 -> node5"]
+    U6["Flow node4 -> node2"]
+
+    U7{"shift.pos == max"}
+    U8["Flow node1 -> node4"]
+    U9["Flow node5 -> node3"]
+
+    U10{"active"}
+    U11["Incrementar shift.pos"]
+    U12["Limitar a shift.max"]
+
+    U13["Decrementar shift.pos"]
+    U14["Limitar a shift.min"]
+
+    U15["Actualizar color1"]
+    U16["Actualizar color2"]
+    U17["Actualizar color3"]
+    U18["Actualizar color4"]
+    U19["Actualizar color5"]
+
+    U20["Fin"]
+
+    U1 --> U2 --> U3 --> U4
+
+    U4 -->|Sí| U5 --> U6 --> U7
+    U4 -->|No| U7
+
+    U7 -->|Sí| U8 --> U9 --> U10
+    U7 -->|No| U10
+
+    U10 -->|Sí| U11 --> U12 --> U15
+    U10 -->|No| U13 --> U14 --> U15
+
+    U15 --> U16 --> U17 --> U18 --> U19 --> U20
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+    D2["Draw port 1"]
+    D3["Draw port 2"]
+    D4["Draw port 3"]
+    D5["Draw port 4"]
+    D6["Draw port 5"]
+    D7["Draw body"]
+    D8["Fin"]
+
+    D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7 --> D8
+end
+
+subgraph DRAW_BODY
+direction TB
+    B1["Inicio drawBody"]
+    B2["Calcular posX"]
+
+    B3{"shift == min"}
+
+    B4["Dibujar conexiones estado reposo"]
+    B5["Flow 1-5"]
+    B6["Flow 4-2"]
+    B7["Tap puerto 3"]
+
+    B8["Dibujar conexiones estado activado"]
+    B9["Flow 1-4"]
+    B10["Flow 5-3"]
+    B11["Tap puerto 2"]
+
+    B12["Dibujar rectángulo derecho"]
+    B13["Dibujar muelle"]
+    B14["Mover posX 60"]
+
+    B15["Dibujar rectángulo izquierdo"]
+    B16["Dibujar palanca"]
+
+    B17["Fin"]
+
+    B1 --> B2 --> B3
+
+    B3 -->|Sí| B4
+    B4 --> B5 --> B6 --> B7 --> B12
+
+    B3 -->|No| B8
+    B8 --> B9 --> B10 --> B11 --> B12
+
+    B12 --> B13 --> B14 --> B15 --> B16 --> B17
+end

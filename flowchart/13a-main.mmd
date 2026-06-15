@@ -1,0 +1,49 @@
+--- 
+title: Rutina main de la aplicación (1)
+---
+flowchart TB
+    %% Estilos de diseño
+    classDef globalVars fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+    classDef setup fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef query fill:#cce5ff,stroke:#004085,stroke-width:1px;
+
+    %% Instanciación Global
+    subgraph InicializacionGlobal [1. Asignación de Instancias y DOM]
+    direction TB
+        A[Capturar elementos DOM:<br>aboutCloseBtn, textPrompt, textInput, messageInput] --> B["Instanciar Núcleo:<br>engine = new Engine()<br>renderer = new Renderer()<br>ui = new UIController()"]
+        B --> C["Ajustar timestamp inicial:<br>last = performance.now()"]
+    end
+    class A,B,C globalVars;
+
+    %% Disparador del Setup
+    InicializacionGlobal --> D[Ejecución Automática: firstSetupApp]
+
+    subgraph FlujoSetup [2. Proceso firstSetupApp]
+    direction TB
+        D --> E[Llamar ui._resizeCanvas]
+        E --> F[Configurar idioma con navigatorLang]
+        F --> G[Llamar función query_read]
+        
+        %% Procesamiento de la URL
+        G --> H["Iterar por cada par clave/valor encontrado en la URL"]
+        H --> I{"¿La línea tiene 2 elementos<br>Y la clave es 'loadFile'?"}
+        I -- Sí --> J["Cargar circuito neumático:<br>openFile('./' + archivo)"]
+        I -- No --> K[Ignorar línea de comando]
+        J & K --> L[Finalizar bucle de configuración]
+    end
+    class D,E,F,G,H,I,J,K,L setup;
+
+    subgraph LectorURL [3. Función query_read]
+    direction TB
+        M([Inicio query_read]) --> N{"¿La URL tiene el separador '?'?"}
+        N -- No --> O[Retornar arreglo vacío]
+        N -- Sí --> P["Dividir cadena por el carácter '&'"]
+        P --> Q[Iterar y extraer sub-arreglos separados por el carácter '=']
+        Q --> R[Filtrar pares incorrectos y almacenar en vars]
+        R --> S[Retornar matriz de variables encontradas]
+    end
+    class M,N,O,P,Q,R,S query;
+
+    %% Enlace de subprocesos
+    G -.-> M
+    S -.-> H

@@ -1,0 +1,67 @@
+---
+title: Componente base
+---
+flowchart TB
+    %% Estilos de los nodos
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef logic fill:#cce5ff,stroke:#004085,stroke-width:1px;
+    classDef draw fill:#fff3cd,stroke:#856404,stroke-width:1px;
+    classDef math fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+
+    %% --- SECCIÓN 1: INICIALIZACIÓN ---
+    subgraph Inicializacion [1. Instanciación del Componente]
+    direction TB
+        A([Nueva Instancia ComponentBase]) --> B[timestamp = Generar ID único hex]
+        B --> C[Asignar Coordenadas x, y con snap]
+        C --> D[Establecer tipo, flags de selección y grid]
+    end
+    class A,B,C,D init;
+
+    %% --- SECCIÓN 2: LÓGICA Y POSICIÓN ---
+    subgraph Logica [2. Métodos de Estado y Colisión]
+    direction TB
+        E[Método move x, y] --> F[Reajustar coordenadas con snap]
+        
+        G[Método nearPos a, b] --> H{¿Distancia X e Y <= nearDist?}
+        H -- Sí --> I[Retornar true]
+        H -- No --> J[Retornar null]
+        
+        K[Método nearRect pos] --> L{¿Está pos dentro del delimitador Min/Max?}
+        L -- Sí --> M[Retornar true]
+        L -- No --> N[Retornar false]
+    end
+    class E,F,G,H,I,J,K,L,M,N logic;
+
+    %% --- SECCIÓN 3: MÉTODOS DE RENDERIZADO (CANVAS) ---
+    subgraph Renderizado [3. Pipeline Gráfico / Canvas]
+    direction TB
+        O[Método drawCtx] --> P{¿selected == true?}
+        P -- Sí --> Q[Cambiar color a selectedColor]
+        P -- No --> R[Mantener defaultColor]
+        
+        Q & R --> S[Dibujar geometrías básicas]
+        
+        S --> T[drawPipe / drawPort]
+        S --> U[drawArrow / drawRectangle]
+        S --> V[drawSpring / drawCamera]
+        S --> W[drawPush / drawPneu]
+    end
+    class O,P,Q,R,S,T,U,V,W draw;
+
+    %% --- SECCIÓN 4: CÁLCULOS DE FÍSICA ---
+    subgraph Fisica [4. Cálculo de Presión y Flujo]
+    direction TB
+        X[Método colorPressure] --> Y{¿bg == 0?}
+        Y -- Sí --> Z[Calcular canal Azul según presión]
+        Y -- No --> AA[Calcular canal Blanco/Azul de fondo]
+        
+        AB[Método computeFlow] --> AC[Calcular dp entre nodos]
+        AC --> AD[Simular flujo no lineal con Math.sqrt]
+        AD --> AE[Runge-Kutta: Calcular coeficientes k1_m, k2_m, k3_m]
+    end
+    class X,Y,Z,AA,AB,AC,AD,AE math;
+
+    %% Conexiones de ciclo de vida generales
+    Inicializacion --> Logica
+    Logica --> Renderizado
+    Renderizado --> Fisica

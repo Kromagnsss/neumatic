@@ -1,0 +1,45 @@
+---
+title: Control de la interfaz gráfica 1
+---
+flowchart TB
+    %% Estilos
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef event fill:#fff3cd,stroke:#856404,stroke-width:1px;
+    classDef actions fill:#cce5ff,stroke:#004085,stroke-width:1px;
+
+    subgraph Constructor [1. Inicialización de Listeners]
+    direction TB
+        A([Instanciar UIController]) --> B[Guardar referencias: canvas, engine, renderer, grid]
+        B --> C["Listeners del Ratón: mousedown, mousemove, mouseup"]
+        B --> D["Listener Global: resize (_resizeCanvas)"]
+        B --> E["Listener Teclado: keydown"]
+    end
+    class A,B,C,D,E init;
+
+    subgraph Teclado [2. Eventos de Teclado]
+    direction TB
+        E --> F{"¿Qué tecla se presionó?"}
+        F -- Escape --> G[Llamar _escape]
+        F -- Delete --> H[Llamar _delete]
+        F -- 's' / 'S' --> I{"¿drawMode === null?"}
+        I -- Sí --> J[Ejecutar simulationStep]
+        
+        G & H & F & J --> K[Refrescar Pantalla: renderer.draw]
+    end
+    class F,G,H,I,J,K event;
+
+    subgraph AccionesCore [3. Métodos Internos Core]
+    direction TB
+        L([_delete]) --> M{"¿drawMode === 'Move' Y componentMove existe?"}
+        M -- Sí --> N[engine.deleteComponent componentMove]
+        
+        O([_escape]) --> P["Resetear flags: drawMode=null, componentMove=null"]
+        P --> Q{"¿Existe editPipe?"}
+        Q -- Sí --> R[engine.deleteComponent editPipe]
+        Q & R -- No --> S["Limpiar referencias: editPipe=null, pipeMove=null, initPos=null"]
+        
+        T([_resizeCanvas]) --> U[Calcular nuevas dimensiones según ventana y escala]
+        U --> V[Ajustar canvas.width / canvas.height]
+        V --> W[ctx.scale y renderer.draw]
+    end
+    class L,M,N,O,P,Q,R,S,T,U,V,W actions;

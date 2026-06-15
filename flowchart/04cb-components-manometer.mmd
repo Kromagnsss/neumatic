@@ -1,0 +1,32 @@
+---
+title: Clase Manometer
+---
+flowchart TB
+    D1["Inicio draw"]
+    D2{"Flipped"}
+
+    D3["Draw port inferior"]
+    D4["Dibujar esfera inferior"]
+    D5["Dibujar aguja"]
+    D6["Mostrar valor inferior"]
+
+    D7["Draw port superior"]
+    D8["Dibujar esfera superior"]
+    D9["Dibujar aguja"]
+    D10["Mostrar valor superior"]
+
+    D11["Fin"]
+
+    D1 --> D2
+
+    D2 -->|Si| D3
+    D3 --> D4
+    D4 --> D5
+    D5 --> D6
+    D6 --> D11
+
+    D2 -->|No| D7
+    D7 --> D8
+    D8 --> D9
+    D9 --> D10
+    D10 --> D11

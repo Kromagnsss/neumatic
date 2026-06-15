@@ -1,0 +1,51 @@
+---
+title: Clase Text
+---
+flowchart TB
+    %% Estilos de diseño
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef method fill:#cce5ff,stroke:#004085,stroke-width:1px;
+    classDef canvas fill:#fff3cd,stroke:#856404,stroke-width:1px;
+
+    %% --- CONSTRUCTOR ---
+    subgraph Inicializacion [1. Constructor de Clase Text]
+    direction TB
+        A([Instanciar new Text pos]) --> B["Llamada al ancestro:<br>super(pos)"]
+        B --> C["Ajustar rejilla de precisión fina:<br>grid = grid * 0.5"]
+        C --> D["Recalcular x, y usando snap a media rejilla"]
+        D --> E["Establecer propiedades únicas:<br>type = 'Text'<br>width = 30<br>color = defaultColor"]
+        E --> F["Inicializar diccionario de opciones:<br>options.text = 'Text'"]
+    end
+    class A,B,C,D,E,F init;
+
+    %% --- MÉTODOS DE ESTADO Y COLISIÓN ---
+    subgraph MetodosEstado [2. Métodos de Interfaz y Colisión]
+    direction TB
+        G([Método vias]) --> H["Retornar arreglo vacío [ ]<br><i>(Las etiquetas de texto no tienen conexiones)</i>"]
+        
+        I([Método near pos]) --> J["Calcular caja de colisión delimitadora:<br>X_min = x<br>Y_min = y - 10<br>X_max = x + width<br>Y_max = y + 5"]
+        J --> K["Llamar y retornar:<br>this.nearRect(X_min, Y_min, X_max, Y_max, pos)"]
+        
+        L([Método validateOptions]) --> M{"¿options.text.length > 150?"}
+        M -- Sí --> N["Recortar texto de forma segura:<br>options.text = text.slice(0, 150)"]
+        M -- No --> O([Fin de la validación])
+        N --> O
+    end
+    class G,H,I,J,K,L,M,N,O method;
+
+    %% --- OPERACIÓN DE RENDIMIENTO GRÁFICO ---
+    subgraph PipelineRender [3. Pipeline de Dibujo en Canvas]
+    direction TB
+        P([Método draw ctx]) --> Q["Medir ancho del texto en píxeles:<br>metrics = ctx.measureText(text)"]
+        Q --> R["Ajustar ancho dinámico del nodo:<br>this.width = metrics.width + 10"]
+        R --> S["Establecer estilos globales del pincel:<br>ctx.lineWidth y ctx.font"]
+        S --> T{"¿this.selected es verdadero?"}
+        T -- Sí --> U["ctx.fillStyle = selectedColor"]
+        T -- No --> V["ctx.fillStyle = this.color"]
+        U & V --> W["Estampar texto en pantalla:<br>ctx.fillText(text, x, y + 5)"]
+    end
+    class P,Q,R,S,T,U,V,W canvas;
+
+    %% Relación secuencial
+    Inicializacion --> MetodosEstado
+    MetodosEstado --> PipelineRender

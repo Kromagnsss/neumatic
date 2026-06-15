@@ -1,0 +1,45 @@
+---
+title: Control de la interfaz gráfica 2
+---
+flowchart TD
+    %% Estilos
+    classDef trigger fill:#f8d7da,stroke:#721c24,stroke-width:2px;
+    classDef modes fill:#cce5ff,stroke:#004085,stroke-width:1px;
+
+    A([Click del Ratón: _onDown]) --> B[Obtener coordenadas relativas: _getMousePos]
+    B --> C[Válvulas Manuales: Invertir comp.active si se hace click cerca]
+    
+    C --> D{"Evaluar Modo de Dibujo Actual (drawMode)"}
+
+    %% Modo Opciones
+    D -- Options --> E["Iterar componentes"]
+    E --> F{"¿Click near comp?"}
+    F -- Sí --> G["Asignar componentEdit <br> Lanzar textPromptAssign según Tipo"]
+    
+    %% Modo Flip
+    D -- Flip --> H["Iterar componentes"]
+    H --> I{"¿Click near comp flips?"}
+    I -- Sí --> J["Ejecutar comp.flip"]
+
+    %% Modo Delete
+    D -- Delete --> K["Iterar componentes"]
+    K --> L{"¿Click near comp?"}
+    L -- Sí --> M["engine.deleteComponent"]
+
+    %% Modo Component
+    D -- component --> N{"¿Es tipo Pipe?"}
+    N -- No --> O["Instanciar Componente según tipo <br> engine.addComponent"]
+    N -- Sí --> P{"¿initPos === null?"}
+    P -- Sí --> Q["Iniciar dibujo de Tubería: editPipe = new Pipe"]
+    P -- No --> R["Finalizar tramo o borrar si longitud es 0"]
+
+    %% Modo Move
+    D -- Move --> S{"¿Ya hay un componentMove seleccionado?"}
+    S -- Sí --> T["Mover componente a la nueva posición <br> Soltar elemento y limpiar banderas"]
+    S -- No --> U["Buscar componente más cercano para capturarlo y asignarle selected=true"]
+
+    %% Cierre común
+    G & J & M & O & Q & R & T & U --> V["Llamar renderer.draw <br> Llamar renderer.drawPosition"]
+    
+    class A,B,C,D trigger;
+    class E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V modes;

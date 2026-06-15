@@ -1,0 +1,27 @@
+---
+title: Control del nodo básico neumático
+---
+flowchart TB
+    %% Estilos de diseño
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef method fill:#cce5ff,stroke:#004085,stroke-width:1px;
+
+    %% --- CONSTRUCTOR ---
+    subgraph Inicializacion [1. Instanciación del Nodo]
+    direction TB
+        A([Nueva Instancia Node pos]) --> B["volume = 10 (cm³)<br>pressure = airPressure (bar)"]
+        B --> C["Calcular masa inicial:<br>mass = pressure * volume"]
+        C --> D["Asignar Coordenadas:<br>x = pos.x<br>y = pos.y"]
+    end
+    class A,B,C,D init;
+
+    %% --- MÉTODOS DE ESTADO ---
+    subgraph Metodos ["2. Modificación de Estado (Dinámica de Fluidos)"]
+    direction TB
+        E([Método addAir q]) --> F["Incrementar masa:<br>mass += q"]
+        F --> G["Recalcular presión del nodo:<br>pressure = mass / volume"]
+    end
+    class E,F,G method;
+
+    %% Relación de flujo lógico
+    Inicializacion --> Metodos

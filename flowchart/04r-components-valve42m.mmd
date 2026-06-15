@@ -1,0 +1,133 @@
+---
+title: Clase Valve42m
+---
+flowchart LR
+
+subgraph UPDATE["UPDATE"]
+direction TB
+
+U1["Inicio update"]
+U2["Obtener vias"]
+U3["Buscar node1, node2, node3, node4"]
+
+U4{"shift.pos == min?"}
+U5["Flow node1 ↔ node4"]
+U6["Flow node2 ↔ node3"]
+
+U7{"shift.pos == max?"}
+U8["Flow node1 ↔ node3"]
+U9["Flow node2 ↔ node4"]
+
+U10{"active?"}
+
+U11{"shift.pos < max?"}
+U12["shift.pos += dt × speed"]
+U13{"shift.pos > max?"}
+U14["shift.pos = max"]
+
+U15{"shift.pos > min?"}
+U16["shift.pos -= dt × speed"]
+U17{"shift.pos < min?"}
+U18["shift.pos = min"]
+
+U19["Actualizar color1"]
+U20["Actualizar color2"]
+U21["Actualizar color3"]
+U22["Actualizar color4"]
+
+U23["Fin update"]
+
+U1 --> U2 --> U3 --> U4
+
+U4 -->|Sí| U5 --> U6 --> U7
+U4 -->|No| U7
+
+U7 -->|Sí| U8 --> U9 --> U10
+U7 -->|No| U10
+
+U10 -->|Sí| U11
+U11 -->|Sí| U12 --> U13
+U11 -->|No| U13
+U13 -->|Sí| U14 --> U19
+U13 -->|No| U19
+
+U10 -->|No| U15
+U15 -->|Sí| U16 --> U17
+U15 -->|No| U17
+U17 -->|Sí| U18 --> U19
+U17 -->|No| U19
+
+U19 --> U20 --> U21 --> U22 --> U23
+
+end
+
+
+subgraph DRAW["DRAW"]
+direction TB
+
+D1["Inicio draw"]
+
+D2["Draw Port 1"]
+D3["Draw Port 2"]
+D4["Draw Port 3"]
+D5["Draw Port 4"]
+
+D6["drawBody(shift.pos)"]
+
+D7["Fin draw"]
+
+D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7
+
+end
+
+
+subgraph DRAWBODY["DRAWBODY"]
+direction TB
+
+B1["Inicio drawBody"]
+B2["posX = x + shift"]
+
+B3{"shift.pos == min?"}
+
+B4["Dibujar conexiones activas<br/>1↔4 y 2↔3"]
+B5["Dibujar cuerpo derecho"]
+B6["Dibujar muelle"]
+B7["Dibujar cuerpo izquierdo"]
+B8["Dibujar palanca"]
+
+B9["Dibujar conexiones activas<br/>1↔3 y 2↔4"]
+B10["Dibujar cuerpo derecho"]
+B11["Dibujar muelle"]
+B12["Dibujar cuerpo izquierdo"]
+B13["Dibujar palanca"]
+
+B14["Fin drawBody"]
+
+B1 --> B2 --> B3
+
+B3 -->|Sí| B4 --> B5 --> B6 --> B7 --> B8 --> B14
+B3 -->|No| B9 --> B10 --> B11 --> B12 --> B13 --> B14
+
+end
+
+
+subgraph NEARPUSHBUTTON["NEARPUSHBUTTON"]
+direction TB
+
+N1["Inicio nearPushButton"]
+
+N2{"Click sobre pulsador?"}
+N3["return true"]
+
+N4{"activateValvesTouchingBody?"}
+N5["return near(pos)"]
+
+N6["return false"]
+
+N1 --> N2
+N2 -->|Sí| N3
+N2 -->|No| N4
+N4 -->|Sí| N5
+N4 -->|No| N6
+
+end

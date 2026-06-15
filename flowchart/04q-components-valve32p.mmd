@@ -1,0 +1,172 @@
+---
+title: Clase Valve32p
+---
+flowchart LR
+
+subgraph UPDATE["UPDATE"]
+direction TB
+
+U1["Inicio update"]
+U2["Obtener vias"]
+U3["Buscar node1, node2, node3, node4, node5"]
+
+U4{"active && P5 > P4 + 0.1?"}
+U5["active = false"]
+
+U6{"!active && P4 > P5 + 0.1?"}
+U7["active = true"]
+
+U8{"flipped?"}
+
+U9{"shift.pos == min?"}
+U10["Flow node1 ↔ node2"]
+
+U11{"shift.pos == max?"}
+U12["Flow node2 ↔ node3"]
+
+U13{"shift.pos == min?"}
+U14["Flow node2 ↔ node3"]
+
+U15{"shift.pos == max?"}
+U16["Flow node1 ↔ node2"]
+
+U17{"active?"}
+
+U18{"shift.pos < max?"}
+U19["shift.pos += dt × speed"]
+U20{"shift.pos > max?"}
+U21["shift.pos = max"]
+
+U22{"shift.pos > min?"}
+U23["shift.pos -= dt × speed"]
+U24{"shift.pos < min?"}
+U25["shift.pos = min"]
+
+U26["Actualizar color1"]
+U27["Actualizar color2"]
+U28["Actualizar color3"]
+U29["Actualizar color4"]
+U30["Actualizar color5"]
+
+U31["Fin update"]
+
+U1 --> U2 --> U3 --> U4
+
+U4 -->|Sí| U5 --> U6
+U4 -->|No| U6
+
+U6 -->|Sí| U7 --> U8
+U6 -->|No| U8
+
+U8 -->|Sí| U9
+U9 -->|Sí| U10 --> U11
+U9 -->|No| U11
+U11 -->|Sí| U12 --> U17
+U11 -->|No| U17
+
+U8 -->|No| U13
+U13 -->|Sí| U14 --> U15
+U13 -->|No| U15
+U15 -->|Sí| U16 --> U17
+U15 -->|No| U17
+
+U17 -->|Sí| U18
+U18 -->|Sí| U19 --> U20
+U18 -->|No| U20
+U20 -->|Sí| U21 --> U26
+U20 -->|No| U26
+
+U17 -->|No| U22
+U22 -->|Sí| U23 --> U24
+U22 -->|No| U24
+U24 -->|Sí| U25 --> U26
+U24 -->|No| U26
+
+U26 --> U27 --> U28 --> U29 --> U30 --> U31
+
+end
+
+
+subgraph DRAW["DRAW"]
+direction TB
+
+D1["Inicio draw"]
+
+D2["Draw Port 1"]
+D3["Draw Port 2"]
+D4["Draw Port 3"]
+D5["Draw Port 4 (Piloto izquierdo)"]
+D6["Draw Port 5 (Piloto derecho)"]
+
+D7["drawBody(shift.pos)"]
+
+D8["Fin draw"]
+
+D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7 --> D8
+
+end
+
+
+subgraph DRAWBODY["DRAWBODY"]
+direction TB
+
+B1["Inicio drawBody"]
+B2["posX = x + shift"]
+
+B3{"flipped?"}
+
+B4{"shift.pos == min?"}
+B5["Estado flipped-min<br/>Flow 1↔2 activo"]
+B6["Piloto izquierdo color4"]
+B7["Piloto derecho color5"]
+
+B8["Estado flipped-max<br/>Flow 2↔3 activo"]
+B9["Piloto izquierdo color4"]
+B10["Piloto derecho color5"]
+
+B11{"shift.pos == min?"}
+B12["Estado normal-min<br/>Flow 2↔3 activo"]
+B13["Piloto izquierdo color4"]
+B14["Piloto derecho color5"]
+
+B15["Estado normal-max<br/>Flow 1↔2 activo"]
+B16["Piloto izquierdo color4"]
+B17["Piloto derecho color5"]
+
+B18["Dibujar rectángulo derecho"]
+B19["Dibujar rectángulo izquierdo"]
+
+B20["Fin drawBody"]
+
+B1 --> B2 --> B3
+
+B3 -->|Sí| B4
+B4 -->|Sí| B5 --> B6 --> B7 --> B18
+B4 -->|No| B8 --> B9 --> B10 --> B18
+
+B3 -->|No| B11
+B11 -->|Sí| B12 --> B13 --> B14 --> B18
+B11 -->|No| B15 --> B16 --> B17 --> B18
+
+B18 --> B19 --> B20
+
+end
+
+
+subgraph FLIP["FLIP"]
+direction TB
+
+F1["Inicio flip"]
+
+F2{"options.flipped?"}
+
+F3["flipped = false"]
+F4["flipped = true"]
+
+F5["Fin flip"]
+
+F1 --> F2
+F2 -->|Sí| F3 --> F5
+F2 -->|No| F4 --> F5
+
+end

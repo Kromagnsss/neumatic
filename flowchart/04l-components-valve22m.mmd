@@ -1,0 +1,100 @@
+---
+title: Clase Valve22m
+---
+
+flowchart TB
+
+    A["Inicio Valve22m"]
+
+%% =========================
+%% UPDATE
+%% =========================
+
+    A --> B["Obtener via1 y via2"]
+    B --> C["Buscar node1 y node2"]
+
+    C --> D{"Flipped"}
+
+    D -->|Si| E{"Shift igual minimo"}
+    E -->|Si| F["computeFlow node1 ↔ node2"]
+    E -->|No| I
+
+    D -->|No| G{"Shift igual maximo"}
+    G -->|Si| H["computeFlow node1 ↔ node2"]
+    G -->|No| I
+
+    F --> I
+    H --> I
+
+    I{"Active"}
+
+    I -->|Si| J{"Shift menor que maximo"}
+    J -->|Si| K["Incrementar shift.pos"]
+    J -->|No| L{"Shift mayor que maximo"}
+
+    K --> L
+
+    L -->|Si| M["Shift igual maximo"]
+    L -->|No| R
+
+    M --> R
+
+    I -->|No| N{"Shift mayor que minimo"}
+
+    N -->|Si| O["Reducir shift.pos"]
+    N -->|No| P{"Shift menor que minimo"}
+
+    O --> P
+
+    P -->|Si| Q["Shift igual minimo"]
+    P -->|No| R
+
+    Q --> R
+
+    R["Actualizar color1"]
+    R --> S["Actualizar color2"]
+
+%% =========================
+%% DRAW
+%% =========================
+
+    S --> T["Inicio draw"]
+
+    T --> U["Dibujar puerto inferior"]
+    U --> V["Dibujar puerto superior"]
+    V --> W["Llamar drawBody"]
+
+%% =========================
+%% DRAW BODY
+%% =========================
+
+    W --> X["Calcular posX"]
+
+    X --> Y{"Flipped"}
+
+    Y -->|Si| Z{"Shift igual minimo"}
+
+    Z -->|Si| AA["Estado abierto flipped"]
+    Z -->|No| AB["Estado cerrado flipped"]
+
+    Y -->|No| AC{"Shift igual minimo"}
+
+    AC -->|Si| AD["Estado cerrado normal"]
+    AC -->|No| AE["Estado abierto normal"]
+
+    AA --> AF
+    AB --> AF
+    AD --> AF
+    AE --> AF
+
+    AF["Dibujar rectangulo izquierdo"]
+    AF --> AG["Dibujar rectangulo derecho"]
+
+    AG --> AH["Dibujar muelle"]
+    AH --> AI["Dibujar palanca"]
+
+%% =========================
+%% FIN
+%% =========================
+
+    AI --> AJ["Fin Valve22m"]

@@ -1,0 +1,128 @@
+---
+title: Clase Roller
+---
+flowchart LR
+
+subgraph UPDATE["UPDATE"]
+direction TB
+
+U1["Inicio update"]
+U2["shift = 0"]
+
+U3["Recorrer engine.components"]
+U4{"Componente Cylinder1 o Cylinder2?"}
+U5{"nearCylinder(comp)?"}
+U6["shift = maxShift"]
+U7["Salir del bucle"]
+
+U8["Recorrer engine.components"]
+
+U9{"Componente Valve32r?"}
+U10{"reference coincide?"}
+
+U11{"shift == 0?"}
+U12["comp.active = false"]
+U13["comp.active = true"]
+
+U14["Fin update"]
+
+U1 --> U2 --> U3 --> U4
+
+U4 -->|Sí| U5
+U4 -->|No| U3
+
+U5 -->|Sí| U6 --> U7 --> U8
+U5 -->|No| U3
+
+U8 --> U9
+U9 -->|Sí| U10
+U9 -->|No| U8
+
+U10 -->|Sí| U11
+U10 -->|No| U8
+
+U11 -->|Sí| U12 --> U8
+U11 -->|No| U13 --> U8
+
+U8 --> U14
+
+end
+
+
+subgraph NEARCYLINDER["NEARCYLINDER"]
+direction TB
+
+N1["Inicio nearCylinder"]
+
+N2{"Cilindro alineado<br/>en eje Y?"}
+
+N3{"Extremo del vástago<br/>coincide con roller?"}
+
+N4["return true"]
+
+N5["return false"]
+
+N1 --> N2
+
+N2 -->|Sí| N3
+N2 -->|No| N5
+
+N3 -->|Sí| N4
+N3 -->|No| N5
+
+end
+
+
+subgraph DRAW["DRAW"]
+direction TB
+
+D1["Inicio draw"]
+
+D2["Dibujar rectángulo base"]
+
+D3["Mostrar referencia"]
+
+D4["posY = y - shift"]
+
+D5["Dibujar soporte izquierdo"]
+D6["Dibujar soporte derecho"]
+
+D7["Dibujar rodillo exterior"]
+D8["Dibujar eje central"]
+
+D9["Fin draw"]
+
+D1 --> D2 --> D3 --> D4
+D4 --> D5 --> D6 --> D7 --> D8 --> D9
+
+end
+
+
+subgraph RESET["RESET"]
+direction TB
+
+R1["Inicio reset"]
+R2["shift = 0"]
+R3["Fin reset"]
+
+R1 --> R2 --> R3
+
+end
+
+
+subgraph VALIDATEOPTIONS["VALIDATEOPTIONS"]
+direction TB
+
+V1["Inicio validateOptions"]
+
+V2{"reference.length > 3?"}
+
+V3["Truncar a 3 caracteres"]
+
+V4["Fin"]
+
+V1 --> V2
+V2 -->|Sí| V3 --> V4
+V2 -->|No| V4
+
+end

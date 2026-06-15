@@ -1,0 +1,72 @@
+---
+title: Clase Compressor
+---
+flowchart LR
+
+subgraph VALIDATE_OPTIONS
+direction TB
+    V1["Inicio validateOptions"]
+    V2["Convertir pressure a numero"]
+
+    V3{"Es NaN"}
+    V4["Asignar compressorPressure"]
+
+    V5{"Pressure mayor que maximo"}
+    V6["Asignar compressorPressure"]
+
+    V7{"Pressure menor que 0.5"}
+    V8["Asignar 0.5"]
+
+    V9["Fin validateOptions"]
+
+    V1 --> V2
+    V2 --> V3
+
+    V3 -->|Si| V4
+    V3 -->|No| V5
+
+    V4 --> V5
+
+    V5 -->|Si| V6
+    V5 -->|No| V7
+
+    V6 --> V7
+
+    V7 -->|Si| V8
+    V7 -->|No| V9
+
+    V8 --> V9
+end
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+    U2["Obtener via1"]
+    U3["Buscar node"]
+
+    U4["Asignar presion al nodo"]
+    U5["Actualizar masa del nodo"]
+    U6["Actualizar color"]
+    U7["Fin update"]
+
+    U1 --> U2
+    U2 --> U3
+    U3 --> U4
+    U4 --> U5
+    U5 --> U6
+    U6 --> U7
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+    D2["Dibujar puerto"]
+    D3["Dibujar circulo exterior"]
+    D4["Dibujar circulo interior"]
+    D5["Fin draw"]
+
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    D4 --> D5
+end

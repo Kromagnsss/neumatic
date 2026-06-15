@@ -1,0 +1,141 @@
+---
+title: Clase ValveAnd
+---
+flowchart LR
+
+subgraph UPDATE
+direction TB
+    U1["Inicio update"]
+    U2["Obtener via1 via2 via3"]
+    U3["Buscar node1 node2 node3"]
+
+    U4{"Shift distinto de maxShift"}
+    U5["Compute Flow node1 a node3"]
+
+    U6{"Shift distinto de cero"}
+    U7["Compute Flow node2 a node3"]
+
+    U8{"P1 mayor que P2 mas margen"}
+    U9["Shift igual maxShift"]
+
+    U10{"P2 mayor que P1 mas margen"}
+    U11["Shift igual cero"]
+
+    U12["Actualizar color1"]
+    U13["Actualizar color2"]
+    U14["Actualizar color3"]
+
+    U15["Actualizar color1w"]
+    U16["Actualizar color2w"]
+    U17["Actualizar color3w"]
+
+    U18["Fin update"]
+
+    U1 --> U2
+    U2 --> U3
+
+    U3 --> U4
+
+    U4 -->|Si| U5
+    U4 -->|No| U6
+    U5 --> U6
+
+    U6 -->|Si| U7
+    U6 -->|No| U8
+    U7 --> U8
+
+    U8 -->|Si| U9
+    U8 -->|No| U10
+    U9 --> U10
+
+    U10 -->|Si| U11
+    U10 -->|No| U12
+    U11 --> U12
+
+    U12 --> U13
+    U13 --> U14
+    U14 --> U15
+    U15 --> U16
+    U16 --> U17
+    U17 --> U18
+end
+
+subgraph DRAW
+direction TB
+    D1["Inicio draw"]
+
+    D2["Dibujar puerto entrada izquierda"]
+    D3["Dibujar puerto entrada derecha"]
+    D4["Dibujar puerto salida"]
+
+    D5["Draw Pressures"]
+    D6["Draw Valve And"]
+    D7["Draw Movement"]
+
+    D8["Fin draw"]
+
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    D4 --> D5
+    D5 --> D6
+    D6 --> D7
+    D7 --> D8
+end
+
+subgraph DRAW_PRESSURES
+direction TB
+    P1["Inicio drawPressures"]
+
+    P2["Pintar zona presion entrada izquierda"]
+    P3["Pintar zona presion entrada derecha"]
+    P4["Pintar zona presion salida"]
+
+    P5["Fin"]
+
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+    P4 --> P5
+end
+
+subgraph DRAW_VALVE_AND
+direction TB
+    A1["Inicio drawValveAnd"]
+
+    A2["Dibujar cuerpo de valvula"]
+
+    A3["Dibujar guia izquierda superior"]
+    A4["Dibujar guia izquierda inferior"]
+
+    A5["Dibujar guia derecha superior"]
+    A6["Dibujar guia derecha inferior"]
+
+    A7["Fin"]
+
+    A1 --> A2
+    A2 --> A3
+    A3 --> A4
+    A4 --> A5
+    A5 --> A6
+    A6 --> A7
+end
+
+subgraph DRAW_MOVEMENT
+direction TB
+    M1["Inicio drawMovement"]
+
+    M2["Calcular posicion movil"]
+
+    M3["Dibujar tope izquierdo"]
+    M4["Dibujar barra central"]
+    M5["Dibujar tope derecho"]
+
+    M6["Fin"]
+
+    M1 --> M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
+end

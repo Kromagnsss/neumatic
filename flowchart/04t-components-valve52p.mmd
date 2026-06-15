@@ -1,0 +1,81 @@
+---
+title: Clase Valve52p
+---
+flowchart TB
+
+    A["Inicio update"]
+
+    A --> B["Obtener vias 1..7"]
+    B --> C["Buscar nodos node1..node7 en engine"]
+
+    C --> D{"active == true<br/>y P7 > P6 + 0.1?"}
+
+    D -- Sí --> E["active = false"]
+    D -- No --> F
+
+    E --> F
+
+    F{"active == false<br/>y P6 > P7 + 0.1?"}
+
+    F -- Sí --> G["active = true"]
+    F -- No --> H
+
+    G --> H
+
+    H{"shift.pos == shift.min?"}
+
+    H -- Sí --> I["computeFlow node1-node5"]
+    I --> J["computeFlow node4-node2"]
+
+    H -- No --> K
+    J --> K
+
+    K{"shift.pos == shift.max?"}
+
+    K -- Sí --> L["computeFlow node1-node4"]
+    L --> M["computeFlow node5-node3"]
+
+    K -- No --> N
+    M --> N
+
+    N{"active?"}
+
+    N -- Sí --> O{"shift.pos < shift.max?"}
+
+    O -- Sí --> P["shift.pos += dt × speed"]
+    O -- No --> Q
+
+    P --> Q
+
+    Q{"shift.pos > shift.max?"}
+
+    Q -- Sí --> R["shift.pos = shift.max"]
+    Q -- No --> T
+
+    R --> T
+
+    N -- No --> U{"shift.pos > shift.min?"}
+
+    U -- Sí --> V["shift.pos -= dt × speed"]
+    U -- No --> W
+
+    V --> W
+
+    W{"shift.pos < shift.min?"}
+
+    W -- Sí --> X["shift.pos = shift.min"]
+    W -- No --> T
+
+    X --> T
+
+    T["Actualizar colores"]
+
+    T --> C1["color1 = colorPressure(node1)"]
+    C1 --> C2["color2 = colorPressure(node2)"]
+    C2 --> C3["color3 = colorPressure(node3)"]
+    C3 --> C4["color4 = colorPressure(node4)"]
+    C4 --> C5["color5 = colorPressure(node5)"]
+    C5 --> C6["color6 = colorPressure(node6)"]
+    C6 --> C7["color7 = colorPressure(node7)"]
+
+    C7 --> Z["Fin update"]

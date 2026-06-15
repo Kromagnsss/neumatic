@@ -1,0 +1,99 @@
+---
+title: Arquitectura Global del Simulador Neumático 
+---
+classDiagram
+    %% Estilos globales para bloques lógicos
+    %% Capa de Interfaz y Control (Verde)
+    style UIController fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    style Renderer fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    
+    %% Capa del Motor de Simulación (Azul)
+    style Engine fill:#cce5ff,stroke:#004085,stroke-width:2px;
+    
+    %% Capa de Componentes y Datos Físicos (Amarillo)
+    style ComponentBase fill:#fff3cd,stroke:#856404,stroke-width:2px;
+    style Node fill:#fff3cd,stroke:#856404,stroke-width:2px;
+
+    %% --- RELACIONES Y FLUJOS ---
+    
+    %% El Navegador interactúa con el Controlador de UI
+    DOM_Events ..> UIController : "1. Captura Eventos (Click/Teclas/Resize)"
+    
+    %% UIController es el Orquestador Superior
+    UIController --> Engine : "2. Modifica Estado (Add/Delete/Move Componentes)"
+    UIController --> Renderer : "3. Solicita Redibujado (renderer.draw())"
+    
+    %% Renderer dibuja la interfaz y consulta al Motor
+    Renderer --> Engine : "4. Lee lista de componentes"
+    Renderer ..> HTML5_Canvas : "5. Renderiza gráficos mediante Context 2D"
+    
+    %% Engine gestiona la estructura interna
+    Engine "1" *-- "many" ComponentBase : "Contiene y actualiza"
+    Engine "1" *-- "many" Node : "Indexa y conecta vías"
+    
+    %% Relación física entre componentes y nodos puntuales
+    ComponentBase ..> Node : "Calcula flujo de aire entre nodos (computeFlow)"
+
+    %% --- ESTRUCTURAS DE CLASES ---
+
+    class UIController {
+        +canvas HTMLCanvasElement
+        +engine Engine
+        +renderer Renderer
+        +grid number
+        +positionMoveInit Object
+        +positionCompInit Object
+        -_onDown(e)
+        -_onMove(e)
+        -_resizeCanvas()
+        -_escape()
+        -_delete()
+    }
+
+    class Renderer {
+        +canvas HTMLCanvasElement
+        +ctx CanvasRenderingContext2D
+        +engine Engine
+        +selectedId string
+        +draw()
+        +drawPosition(pos)
+    }
+
+    class Engine {
+        +canvas HTMLCanvasElement
+        +ctx CanvasRenderingContext2D
+        +components Array~ComponentBase~
+        +nodes Array~Node~
+        +render(dt)
+        +createNodes()
+        +findNode(pos) Node
+        +addComponent(comp)
+        +deleteComponent(comp)
+        +haveTeacherComp() boolean
+        +step()
+    }
+
+    class ComponentBase {
+        +timestamp string
+        +x number
+        +y number
+        +type string
+        +selected boolean
+        +grid number
+        +move(x, y)
+        +nearPos(a, b) boolean
+        +nearRect(ax, ay, bx, by, pos) boolean
+        +draw(ctx)
+        +drawPipe(ctx, color)
+        +drawArrow(ctx, ix, iy, ex, ey)
+        +computeFlow(node1, node2, conductance, dt)
+    }
+
+    class Node {
+        +volume number
+        +pressure number
+        +mass number
+        +x number
+        +y number
+        +addAir(q)
+    }

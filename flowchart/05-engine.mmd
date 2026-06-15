@@ -1,0 +1,73 @@
+---
+title: Control de la simulación neumática engine()
+---
+
+flowchart TB
+    %% Estilos de los nodos
+    classDef init fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    classDef loop fill:#fff3cd,stroke:#856404,stroke-width:1px;
+    classDef logic fill:#cce5ff,stroke:#004085,stroke-width:1px;
+    classDef CRUD fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+
+    %% --- CONSTRUCTOR ---
+    subgraph Inicializacion [1. Inicialización de la Clase]
+    direction TB
+        A([Instanciar Engine]) --> B[Vincular Canvas y obtener Contexto 2D]
+        B --> C["Inicializar arreglos: components = [ ], nodes = [ ]"]
+    end
+    class A,B,C init;
+
+    %% --- BUCLE DE RENDERIZADO ---
+    subgraph Renderizado [2. Pipeline de Renderizado]
+    direction TB
+        D[Método render dt] --> E[Iterar por cada comp en components]
+        E --> F[Llamar comp.update ctx, engine, dt]
+    end
+    class D,E,F loop;
+
+    %% --- GESTIÓN DE NODOS Y VÍAS ---
+    subgraph GestionNodos [3. Indexación de Vías y Nodos]
+    direction TB
+        G[Método createNodes] --> H["Limpiar arreglo: nodes = [ ]"]
+        H --> I[Iterar por cada comp en components]
+        I --> J[Iterar por cada pos en comp.vias]
+        J --> K[Llamar findNode pos]
+        K --> L{"¿El nodo ya existe? <br> findNode === null"}
+        L -- Sí --> M[Crear new Node pos]
+        M --> N[Insertar en this.nodes]
+        L -- No --> O[Ignorar / Siguiente vía]
+        
+        P[Método findNode pos] --> Q[Iterar por cada node en nodes]
+        Q --> R{"¿Coinciden coordenadas? <br> node.x === pos.x y node.y === pos.y"}
+        R -- Sí --> S[Retornar node]
+        R -- No --> T[Procesar siguiente nodo]
+        Q --> U[Si termina el ciclo sin coincidencias, retornar null]
+    end
+    class G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U loop;
+
+    %% --- COMPROBACIONES LOGICAS ---
+    subgraph Validacion [4. Lógica de Negocio]
+    direction TB
+        V[Método haveTeacherComp] --> W[Iterar por cada comp en components]
+        W --> X{"¿Timestamp en base 16 <= minTimestamp?"}
+        X -- Sí --> Y[Retornar true e interrumpir]
+        X -- No --> Z[Procesar siguiente componente]
+        W --> AA[Si termina el ciclo sin cumplirse, retornar false]
+    end
+    class V,W,X,Y,Z,AA logic;
+
+    %% --- ADMINISTRACIÓN DE COMPONENTES ---
+    subgraph AdminComponentes [5. Control de la Colección]
+    direction TB
+        AB[Método addComponent comp] --> AC[Insertar comp en components]
+        AD[Método deleteComponent comp] --> AE[Buscar índice del comp]
+        AE --> AF[Eliminar elemento usando splice]
+        AG[Método reset] --> AH["Vaciar arreglo: components = [ ]"]
+    end
+    class AB,AC,AD,AE,AF,AG,AH CRUD;
+
+    %% Flujo global sugerido de datos
+    Inicializacion --> AdminComponentes
+    AdminComponentes --> GestionNodos
+    GestionNodos --> Validacion
+    Validacion --> Renderizado

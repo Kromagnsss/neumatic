@@ -1,0 +1,21 @@
+---
+title: Clase Pipe
+---
+flowchart TB
+
+    A["Inicio update"]
+    B["Obtener via1 y via2"]
+    C["Buscar node1"]
+    D["Buscar node2"]
+    E["computeFlow(node1,node2,conductance,dt)"]
+    F["Calcular presión media"]
+    G["Actualizar color"]
+    H["Fin update"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H

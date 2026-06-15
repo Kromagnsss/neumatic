@@ -1,0 +1,20 @@
+---
+title: Control del menú de la aplicación 1
+---
+flowchart TD
+    A[Click en cualquier parte del documento] --> B{¿Click en .menu-titulo o .has-submenu > a?}
+
+    B -->|No| C[Cerrar todos los submenús]
+    C --> D[Fin]
+
+    B -->|Sí| E[Obtener siguiente elemento hermano]
+
+    E --> F{¿Existe y es .submenu?}
+
+    F -->|No| D
+    F -->|Sí| G[Buscar submenús hermanos]
+
+    G --> H[Cerrar hermanos]
+    H --> I[Alternar estado del submenú actual]
+
+    I --> D
