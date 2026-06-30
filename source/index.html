@@ -209,6 +209,7 @@
             <ul class="submenu">
               <li><a href="#" data-action="cValveNret" data-i18n="cValveNret">Non-return valve</a></li>
               <li><a href="#" data-action="cValveFlow" data-i18n="cValveFlow">Choke valve</a></li>
+              <li><a href="#" data-action="cValveIsol" data-i18n="cValveIsol">Isolation valve</a></li>
               <li><a href="#" data-action="cValveOr"   data-i18n="cValveOr">Or valve</a></li>
               <li><a href="#" data-action="cValveAnd"  data-i18n="cValveAnd">And valve</a></li>
             </ul>
@@ -443,6 +444,7 @@ const translations = {
     auxValvesMenu: 'Aux. valves',
     cValveNret: 'Non-return valve',
     cValveFlow: 'Choke valve',
+    cValveIsol: 'Isolation valve',
     cValveOr: 'OR valve',
     cValveAnd: 'AND valve',
     cylinderMenu: 'Cylinders',
@@ -502,6 +504,7 @@ const translations = {
     auxValvesMenu: 'Válvulas aux.',
     cValveNret: 'Válvula antirretorno',
     cValveFlow: 'Válvula estranguladora',
+    cValveIsol: 'Válvula de aislamiento',
     cValveOr: 'Válvula selectora (OR)',
     cValveAnd: 'Válvula simultaneidad (AND)',
     cylinderMenu: 'Cilindros',
@@ -592,6 +595,7 @@ document.addEventListener("click", (e) => {
     cValveAnd: () =>  { simulationStop(); drawMode='component'; componentType='ValveAnd'; },
     cValveNret: () => { simulationStop(); drawMode='component'; componentType='ValveNret'; },
     cValveFlow: () => { simulationStop(); drawMode='component'; componentType='ValveFlow'; },
+    cValveIsol: () => { simulationStop(); drawMode='component'; componentType='ValveIsol'; },
     cCylinder1: () => { simulationStop(); drawMode='component'; componentType='Cylinder1'; },
     cCylinder2: () => { simulationStop(); drawMode='component'; componentType='Cylinder2'; },
 
@@ -1448,6 +1452,103 @@ class ValveFlow extends ComponentBase {
     ctx.arc(this.x+25,this.y-25, 22, Math.PI*0.84, Math.PI*1.16);
     ctx.stroke();
     this.drawArrow(ctx, this.x-18, this.y-15, this.x+18, this.y-35);
+  }
+}
+
+
+class ValveIsol extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'ValveIsol';
+    this.conductance = conductanceBase;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+    this.options = {
+      closed: false,
+    };
+  }
+
+  vias() {
+    const via1 = {x:this.x, y:this.y};
+    const via2 = {x:this.x, y:this.y-50};
+    return this.rotateVias([via1, via2]);
+  }
+
+  reset() {
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+  }
+
+  validateOptions() {
+    this.options.closed = (this.options.closed === true || this.options.closed === 'true');
+  }
+
+  toggle() {
+    this.options.closed = !this.options.closed;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+
+    if (!this.options.closed) {
+      this.computeFlow(node1, node2, this.conductance, dt);
+    }
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color2 = this.colorPressure(node2.pressure);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-18, this.y-43, this.x+28, this.y-7, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y, 0, -8, this.color1);
+    this.drawPort(ctx, this.x, this.y-50, 0, 8, this.color2);
+    this.drawValveIsol(ctx);
+  }
+
+  drawValveIsol(ctx) {
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = '#fff';
+
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-25);
+    ctx.lineTo(this.x-13, this.y-10);
+    ctx.lineTo(this.x+13, this.y-10);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-25);
+    ctx.lineTo(this.x-13, this.y-40);
+    ctx.lineTo(this.x+13, this.y-40);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.strokeStyle = (this.selected) ? selectedColor : (this.options.closed ? '#b00' : defaultColor);
+    ctx.beginPath();
+    if (this.options.closed) {
+      ctx.moveTo(this.x-16, this.y-41);
+      ctx.lineTo(this.x+16, this.y-9);
+    }
+    else {
+      ctx.moveTo(this.x, this.y-42);
+      ctx.lineTo(this.x, this.y-8);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.x+13, this.y-25);
+    ctx.lineTo(this.x+28, this.y-25);
+    ctx.lineTo(this.x+28, this.y-17);
+    ctx.stroke();
   }
 }
 
@@ -3669,6 +3770,16 @@ class UIController {
       }
     }
 
+    if (drawMode === null) {
+      for (const comp of this.engine.components) {
+        if (comp.type === 'ValveIsol' && comp.nearRotated(position)) {
+          comp.toggle();
+          break;
+        }
+      }
+      this.renderer.draw();
+    }
+
     // Edit Options component mode
     if (drawMode === 'Options') {
       for (const comp of this.engine.components) {
@@ -3752,6 +3863,7 @@ class UIController {
       if (componentType === 'Valve52p') comp = new Valve52p(position);
       if (componentType === 'ValveNret') comp = new ValveNret(position);
       if (componentType === 'ValveFlow') comp = new ValveFlow(position);
+      if (componentType === 'ValveIsol') comp = new ValveIsol(position);
       if (componentType === 'ValveOr') comp = new ValveOr(position);
       if (componentType === 'ValveAnd') comp = new ValveAnd(position);
 
@@ -3955,6 +4067,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Valve52m')   newcomp = new Valve52m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve52p')   newcomp = new Valve52p({x:comp.x, y:comp.y});
     if (comp.type === 'ValveFlow')  newcomp = new ValveFlow({x:comp.x, y:comp.y});
+    if (comp.type === 'ValveIsol')  newcomp = new ValveIsol({x:comp.x, y:comp.y});
     if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
     if (comp.type === 'ValveAnd')   newcomp = new ValveAnd({x:comp.x, y:comp.y});
     if (comp.type === 'Text')       newcomp = new Text({x:comp.x, y:comp.y});
