@@ -55,6 +55,7 @@ document.addEventListener("click", (e) => {
     cValve32r: () =>  { simulationStop(); drawMode='component'; componentType='Valve32r'; },
     cRoller: () =>    { simulationStop(); drawMode='component'; componentType='Roller'; },
     cValve32p: () =>  { simulationStop(); drawMode='component'; componentType='Valve32p'; },
+    cValve32ps: () => { simulationStop(); drawMode='component'; componentType='Valve32ps'; },
     cValve42m: () =>  { simulationStop(); drawMode='component'; componentType='Valve42m'; },
     cValve52m: () =>  { simulationStop(); drawMode='component'; componentType='Valve52m'; },
     cValve52p: () =>  { simulationStop(); drawMode='component'; componentType='Valve52p'; },

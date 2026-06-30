@@ -61,6 +61,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Valve32b')   newcomp = new Valve32b({x:comp.x, y:comp.y});
     if (comp.type === 'Valve32m')   newcomp = new Valve32m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve32p')   newcomp = new Valve32p({x:comp.x, y:comp.y});
+    if (comp.type === 'Valve32ps')  newcomp = new Valve32ps({x:comp.x, y:comp.y});
     if (comp.type === 'Valve42m')   newcomp = new Valve42m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve52m')   newcomp = new Valve52m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve52p')   newcomp = new Valve52p({x:comp.x, y:comp.y});

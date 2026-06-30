@@ -111,7 +111,7 @@ class UIController {
       for (const comp of this.engine.components) {
         if (comp.near(position)) {
           if (['Manometer', 'ValveNret', 'Valve22m', 'Valve32b',
-               'Valve32m', 'Valve32r',  'Valve32p'].includes(comp.type)) {
+               'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps'].includes(comp.type)) {
             comp.flip();
             break;
           }
@@ -150,6 +150,7 @@ class UIController {
       if (componentType === 'Valve32b') comp = new Valve32b(position);
       if (componentType === 'Valve32m') comp = new Valve32m(position);
       if (componentType === 'Valve32p') comp = new Valve32p(position);
+      if (componentType === 'Valve32ps') comp = new Valve32ps(position);
       if (componentType === 'Valve32r') comp = new Valve32r(position);
       if (componentType === 'Roller') comp = new Roller(position);
       if (componentType === 'Valve42m') comp = new Valve42m(position);

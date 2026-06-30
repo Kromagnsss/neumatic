@@ -197,6 +197,7 @@
               <li><a href="#" data-action="cValve32r" data-i18n="cValve32r">Valve 3/2 with roller</a></li>
               <li><a href="#" data-action="cRoller"   data-i18n="cRoller">Roller of valve</a></li>
               <li><a href="#" data-action="cValve32p" data-i18n="cValve32p">Valve 3/2 pneu. pilot</a></li>
+              <li><a href="#" data-action="cValve32ps" data-i18n="cValve32ps">Valve 3/2 pneu. pilot + spring</a></li>
               <li><a href="#" data-action="cValve42m" data-i18n="cValve42m">Valve 4/2 manual</a></li>
               <li><a href="#" data-action="cValve52m" data-i18n="cValve52m">Valve 5/2 manual</a></li>
               <li><a href="#" data-action="cValve52p" data-i18n="cValve52p">Valve 5/2 pneu. pilot</a></li>
@@ -434,6 +435,7 @@ const translations = {
     cValve32m: 'Valve 3/2 manual',
     cValve32r: 'Valve 3/2 with roller',
     cValve32p: 'Valve 3/2 pneu. pilot',
+    cValve32ps: 'Valve 3/2 pneu. pilot + spring',
     cRoller: 'Roller of valve',
     cValve42m: 'Valve 4/2 manual',
     cValve52m: 'Valve 5/2 manual',
@@ -493,6 +495,7 @@ const translations = {
     cValve32r: 'Válvula 3/2 con rodillo',
     cRoller: 'Rodillo de válvula',
     cValve32p: 'Válvula 3/2 pilotada neum.',
+    cValve32ps: 'Válvula 3/2 pilotada neum. + muelle',
     cValve42m: 'Válvula 4/2 manual',
     cValve52m: 'Válvula 5/2 manual',
     cValve52p: 'Válvula 5/2 pilotada neum.',
@@ -581,6 +584,7 @@ document.addEventListener("click", (e) => {
     cValve32r: () =>  { simulationStop(); drawMode='component'; componentType='Valve32r'; },
     cRoller: () =>    { simulationStop(); drawMode='component'; componentType='Roller'; },
     cValve32p: () =>  { simulationStop(); drawMode='component'; componentType='Valve32p'; },
+    cValve32ps: () => { simulationStop(); drawMode='component'; componentType='Valve32ps'; },
     cValve42m: () =>  { simulationStop(); drawMode='component'; componentType='Valve42m'; },
     cValve52m: () =>  { simulationStop(); drawMode='component'; componentType='Valve52m'; },
     cValve52p: () =>  { simulationStop(); drawMode='component'; componentType='Valve52p'; },
@@ -2882,6 +2886,131 @@ class Valve32p extends ComponentBase {
 }
 
 
+class Valve32ps extends Valve32p {
+  constructor(pos) {
+    super(pos);
+    this.type = 'Valve32ps';
+    this.color4 = defaultColor;
+  }
+
+  vias() {
+    const via1 = {x:this.x, y:this.y};
+    const via2 = {x:this.x, y:this.y-50};
+    const via3 = {x:this.x+20, y:this.y};
+    const via4 = {x:this.x-70, y:this.y-20};
+    return [via1, via2, via3, via4];
+  }
+
+  reset () {
+    this.shift.pos = this.shift.min;
+    this.active = false;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+    this.color3 = defaultColor;
+    this.color4 = defaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2, via3, via4] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    const node3 = engine.findNode(via3);
+    const node4 = engine.findNode(via4);
+
+    this.active = node4.pressure > airPressure + 0.1;
+
+    if (this.options.flipped) {
+      if (this.shift.pos === this.shift.min) {
+        this.computeFlow(node1, node2, this.conductance, dt);
+      }
+      if (this.shift.pos === this.shift.max) {
+        this.computeFlow(node2, node3, this.conductance, dt);
+      }
+    }
+    else {
+      if (this.shift.pos === this.shift.min) {
+        this.computeFlow(node2, node3, this.conductance, dt);
+      }
+      if (this.shift.pos === this.shift.max) {
+        this.computeFlow(node1, node2, this.conductance, dt);
+      }
+    }
+
+    // Move the valve body
+    if (this.active) {
+       if (this.shift.pos < this.shift.max)
+         this.shift.pos += dt * this.shift.speed;
+       if (this.shift.pos > this.shift.max)
+         this.shift.pos = this.shift.max;
+    }
+    else {
+       if (this.shift.pos > this.shift.min)
+         this.shift.pos -= dt * this.shift.speed;
+       if (this.shift.pos < this.shift.min)
+         this.shift.pos = this.shift.min;
+    }
+
+    // Set colors
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color2 = this.colorPressure(node2.pressure);
+    this.color3 = this.colorPressure(node3.pressure);
+    this.color4 = this.colorPressure(node4.pressure);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y, 0, -10, this.color1);
+    this.drawPort(ctx, this.x, this.y-50, 0, 10, this.color2);
+    this.drawPort(ctx, this.x+20, this.y, 0, -10, this.color3);
+    this.drawPort(ctx, this.x-70, this.y-20, 5, 0, this.color4);
+    this.drawBody(ctx, this.shift.pos);
+  }
+
+  drawBody(ctx, shift) {
+    let posX = this.x + shift;
+
+    if (this.options.flipped) {
+      if (shift === this.shift.min) {
+        this.drawArrow(ctx, posX, this.y-10, posX, this.y-40+lineWidth, this.color1);
+        this.drawTap(ctx, posX+20, this.y-10, posX+20, this.y-20, this.color3);
+
+        this.drawArrow(ctx, posX-40, this.y-40, posX-20, this.y-10-lineWidth);
+        this.drawTap(ctx, posX-40, this.y-10, posX-40, this.y-20);
+      }
+      else {
+        this.drawArrow(ctx, posX, this.y-10, posX, this.y-40+lineWidth);
+        this.drawTap(ctx, posX+20, this.y-10, posX+20, this.y-20);
+
+        this.drawArrow(ctx, posX-40, this.y-40, posX-20, this.y-10-lineWidth, this.color3);
+        this.drawTap(ctx, posX-40, this.y-10, posX-40, this.y-20, this.color1);
+      }
+      this.drawPneuLeftPilot(ctx, posX-20, -65, this.color4);
+
+    }
+    else {
+      if (shift === this.shift.min) {
+        this.drawArrow(ctx, posX, this.y-40, posX+20, this.y-10-lineWidth, this.color2);
+        this.drawTap(ctx, posX, this.y-10, posX, this.y-20, this.color1);
+
+        this.drawArrow(ctx, posX-40, this.y-10, posX-40, this.y-40+lineWidth);
+        this.drawTap(ctx, posX-20, this.y-10, posX-20, this.y-20);
+      }
+      else {
+        this.drawArrow(ctx, posX, this.y-40, posX+20, this.y-10-lineWidth);
+        this.drawTap(ctx, posX, this.y-10, posX, this.y-20);
+
+        this.drawArrow(ctx, posX-40, this.y-10, posX-40, this.y-40+lineWidth, this.color1);
+        this.drawTap(ctx, posX-20, this.y-10, posX-20, this.y-20, this.color3);
+      }
+      this.drawPneuLeftPilot(ctx, posX-20, -65, this.color4);
+    }
+
+    this.drawRectangle(ctx, posX-10, this.y-10, posX+30, this.y-40);
+    this.drawRectangle(ctx, posX-50, this.y-10, posX-10, this.y-40);
+    this.drawSpring(ctx, posX+30, this.y-20);
+  }
+}
+
+
 class Valve42m extends ComponentBase {
   constructor(pos) {
     super(pos);
@@ -3514,7 +3643,7 @@ class UIController {
       for (const comp of this.engine.components) {
         if (comp.near(position)) {
           if (['Manometer', 'ValveNret', 'Valve22m', 'Valve32b',
-               'Valve32m', 'Valve32r',  'Valve32p'].includes(comp.type)) {
+               'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps'].includes(comp.type)) {
             comp.flip();
             break;
           }
@@ -3553,6 +3682,7 @@ class UIController {
       if (componentType === 'Valve32b') comp = new Valve32b(position);
       if (componentType === 'Valve32m') comp = new Valve32m(position);
       if (componentType === 'Valve32p') comp = new Valve32p(position);
+      if (componentType === 'Valve32ps') comp = new Valve32ps(position);
       if (componentType === 'Valve32r') comp = new Valve32r(position);
       if (componentType === 'Roller') comp = new Roller(position);
       if (componentType === 'Valve42m') comp = new Valve42m(position);
@@ -3758,6 +3888,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Valve32b')   newcomp = new Valve32b({x:comp.x, y:comp.y});
     if (comp.type === 'Valve32m')   newcomp = new Valve32m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve32p')   newcomp = new Valve32p({x:comp.x, y:comp.y});
+    if (comp.type === 'Valve32ps')  newcomp = new Valve32ps({x:comp.x, y:comp.y});
     if (comp.type === 'Valve42m')   newcomp = new Valve42m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve52m')   newcomp = new Valve52m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve52p')   newcomp = new Valve52p({x:comp.x, y:comp.y});
