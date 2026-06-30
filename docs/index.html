@@ -643,6 +643,57 @@ class ComponentBase {
     return null;
   }
 
+  canRotate() {
+    return this.type !== 'Pipe';
+  }
+
+  getRotation() {
+    const rotation = Number(this.options.rotate);
+    if (isNaN(rotation)) return 0;
+    return ((rotation % 360) + 360) % 360;
+  }
+
+  validateRotationOption() {
+    let rotation = Number(this.options.rotate);
+    if (isNaN(rotation)) rotation = 0;
+    rotation = Math.round(rotation / 90) * 90;
+    this.options.rotate = ((rotation % 360) + 360) % 360;
+    if (this.options.rotate === 0) {
+      delete this.options.rotate;
+    }
+  }
+
+  rotatePos(pos, angle=this.getRotation()) {
+    if (!this.canRotate() || angle === 0) return pos;
+    const rad = angle * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const dx = pos.x - this.x;
+    const dy = pos.y - this.y;
+    return {
+      x: snap(this.x + dx * cos - dy * sin),
+      y: snap(this.y + dx * sin + dy * cos),
+    };
+  }
+
+  rotateVias(vias) {
+    return vias.map(via => this.rotatePos(via));
+  }
+
+  localPos(pos) {
+    if (!this.canRotate()) return pos;
+    return this.rotatePos(pos, -this.getRotation());
+  }
+
+  nearRotated(pos) {
+    return this.near(this.localPos(pos));
+  }
+
+  nearPushButtonRotated(pos) {
+    if (typeof this.nearPushButton !== 'function') return false;
+    return this.nearPushButton(this.localPos(pos));
+  }
+
   nearPos(a, b) {
     if ((Math.abs(a.x - b.x) <= nearDist) && (Math.abs(a.y - b.y) <= nearDist)) {
        return true;
@@ -665,6 +716,20 @@ class ComponentBase {
   }
 
   draw(ctx){
+  }
+
+  drawWithRotation(ctx) {
+    const rotation = this.getRotation();
+    if (!this.canRotate() || rotation === 0) {
+      this.draw(ctx);
+      return;
+    }
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.translate(-this.x, -this.y);
+    this.draw(ctx);
+    ctx.restore();
   }
 
   validateOptions() {
@@ -987,7 +1052,7 @@ class Pipe extends ComponentBase {
   vias() {
     const via1 = this.init;
     const via2 = this.end;
-    return [via1, via2];
+    return this.rotateVias([via1, via2]);
   }
 
   reset() {
@@ -1045,7 +1110,7 @@ class Manometer extends ComponentBase {
 
   vias() {
     const via1 = {x:this.x, y:this.y};
-    return [via1];
+    return this.rotateVias([via1]);
   }
 
   reset() {
@@ -1131,7 +1196,7 @@ class Compressor extends ComponentBase {
 
   vias() {
     const via1 = {x:this.x, y:this.y};
-    return [via1];
+    return this.rotateVias([via1]);
   }
 
   reset() {
@@ -1193,7 +1258,7 @@ class ValveNret extends ComponentBase {
   vias() {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x, y:this.y-50};
-    return [via1, via2];
+    return this.rotateVias([via1, via2]);
   }
 
   reset () {
@@ -1343,7 +1408,7 @@ class ValveFlow extends ComponentBase {
   vias() {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x, y:this.y-50};
-    return [via1, via2];
+    return this.rotateVias([via1, via2]);
   }
 
   reset() {
@@ -1608,7 +1673,7 @@ class Escape extends ComponentBase {
 
   vias() {
     const via1 = {x:this.x, y:this.y};
-    return [via1];
+    return this.rotateVias([via1]);
   }
 
 
@@ -1666,7 +1731,7 @@ class Cylinder1 extends ComponentBase {
 
   vias() {
     const via1 = {x:this.x, y:this.y};
-    return [via1];
+    return this.rotateVias([via1]);
   }
 
   validateOptions() {
@@ -1873,7 +1938,7 @@ class Cylinder2 extends ComponentBase {
   vias() {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x+110, y:this.y};
-    return [via1, via2];
+    return this.rotateVias([via1, via2]);
   }
 
   validateOptions() {
@@ -2073,7 +2138,7 @@ class Valve22m extends ComponentBase {
   vias() {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x, y:this.y-50};
-    return [via1, via2];
+    return this.rotateVias([via1, via2]);
   }
 
   reset () {
@@ -2203,7 +2268,7 @@ class Valve32b extends ComponentBase {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x, y:this.y-50};
     const via3 = {x:this.x+20, y:this.y};
-    return [via1, via2, via3];
+    return this.rotateVias([via1, via2, via3]);
   }
 
   reset () {
@@ -2361,7 +2426,7 @@ class Valve32m extends ComponentBase {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x, y:this.y-50};
     const via3 = {x:this.x+20, y:this.y};
-    return [via1, via2, via3];
+    return this.rotateVias([via1, via2, via3]);
   }
 
   reset () {
@@ -2515,7 +2580,7 @@ class Valve32r extends ComponentBase {
     const via1 = {x:this.x, y:this.y};
     const via2 = {x:this.x, y:this.y-50};
     const via3 = {x:this.x+20, y:this.y};
-    return [via1, via2, via3];
+    return this.rotateVias([via1, via2, via3]);
   }
 
   reset () {
@@ -2760,7 +2825,7 @@ class Valve32p extends ComponentBase {
     const via3 = {x:this.x+20, y:this.y};
     const via4 = {x:this.x-70, y:this.y-20};
     const via5 = {x:this.x+90, y:this.y-20};
-    return [via1, via2, via3, via4, via5];
+    return this.rotateVias([via1, via2, via3, via4, via5]);
   }
 
   reset () {
@@ -2899,7 +2964,7 @@ class Valve32ps extends Valve32p {
     const via2 = {x:this.x, y:this.y-50};
     const via3 = {x:this.x+20, y:this.y};
     const via4 = {x:this.x-70, y:this.y-20};
-    return [via1, via2, via3, via4];
+    return this.rotateVias([via1, via2, via3, via4]);
   }
 
   reset () {
@@ -3035,7 +3100,7 @@ class Valve42m extends ComponentBase {
     const via2 = {x:this.x+20, y:this.y};
     const via3 = {x:this.x,    y:this.y-50};
     const via4 = {x:this.x+20, y:this.y-50};
-    return [via1, via2, via3, via4];
+    return this.rotateVias([via1, via2, via3, via4]);
   }
 
   reset () {
@@ -3156,7 +3221,7 @@ class Valve52m extends ComponentBase {
     const via3 = {x:this.x+20, y:this.y};
     const via4 = {x:this.x-20, y:this.y-50};
     const via5 = {x:this.x+20, y:this.y-50};
-    return [via1, via2, via3, via4, via5];
+    return this.rotateVias([via1, via2, via3, via4, via5]);
   }
 
   reset () {
@@ -3290,7 +3355,7 @@ class Valve52p extends ComponentBase {
     const via5 = {x:this.x+20, y:this.y-50};
     const via6 = {x:this.x-110, y:this.y-20};
     const via7 = {x:this.x+110, y:this.y-20};
-    return [via1, via2, via3, via4, via5, via6, via7];
+    return this.rotateVias([via1, via2, via3, via4, via5, via6, via7]);
   }
 
   reset () {
@@ -3505,7 +3570,7 @@ class Renderer{
     this.drawPosition(mousePosition);
 
     for (const comp of this.engine.components) {
-      comp.draw(ctx);
+      comp.drawWithRotation(ctx);
     }
   }
 
@@ -3599,7 +3664,7 @@ class UIController {
     // Activate manual valves
     for (const comp of this.engine.components) {
       if (['Valve32b', 'Valve32m', 'Valve22m', 'Valve42m', 'Valve52m'].includes(comp.type)
-          && comp.nearPushButton(position)) {
+          && comp.nearPushButtonRotated(position)) {
         if (comp.active) comp.active = false;
         else comp.active = true;
       }
@@ -3608,32 +3673,29 @@ class UIController {
     // Edit Options component mode
     if (drawMode === 'Options') {
       for (const comp of this.engine.components) {
-        if (comp.near(position)) {
+        if (comp.nearRotated(position)) {
+          const prompts = [];
           if (comp.type === 'Text') {
-            componentEdit = comp;
-            textPromptAssign('text', 'Text:');
-            break;
+            prompts.push({key: 'text', message: 'Text:'});
           }
           if (comp.type === 'ValveFlow') {
-            componentEdit = comp;
-            textPromptAssign('conductance', 'Conductance (10-1000):');
-            break;
+            prompts.push({key: 'conductance', message: 'Conductance (10-1000):'});
           }
           if (comp.type === 'Compressor') {
-            componentEdit = comp;
-            textPromptAssign('pressure', 'Pressure (0.5 - ' + compressorPressure + ' bar):');
-            break;
+            prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
           }
           if (['Valve32r', 'Roller'].includes(comp.type)) {
-            componentEdit = comp;
-            textPromptAssign('reference', 'Reference:');
-            break;
+            prompts.push({key: 'reference', message: 'Reference:'});
           }
           if (['Cylinder1', 'Cylinder2'].includes(comp.type)) {
-            componentEdit = comp;
-            textPromptAssign('massLoad', 'Mass Load (kg):');
-            break;
+            prompts.push({key: 'massLoad', message: 'Mass Load (kg):'});
           }
+          if (comp.canRotate()) {
+            prompts.push({key: 'rotate', message: 'Rotate (0, 90, 180, 270):', value: comp.getRotation()});
+          }
+          componentEdit = comp;
+          textPromptAssignSequence(prompts);
+          break;
         }
       }
       this.renderer.draw();
@@ -3642,7 +3704,7 @@ class UIController {
     // Flip component mode
     if (drawMode === 'Flip') {
       for (const comp of this.engine.components) {
-        if (comp.near(position)) {
+        if (comp.nearRotated(position)) {
           if (['Manometer', 'ValveNret', 'Valve22m', 'Valve32b',
                'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps'].includes(comp.type)) {
             comp.flip();
@@ -3658,7 +3720,7 @@ class UIController {
     if (drawMode === 'Delete') {
       let deleteComp = null;
       for (const comp of this.engine.components) {
-        if (comp.near(position)) {
+        if (comp.nearRotated(position)) {
           deleteComp = comp;
           break;
         }
@@ -3751,7 +3813,7 @@ class UIController {
       }
       else {
         for (const comp of this.engine.components) {
-          const near = comp.near(position);
+          const near = comp.nearRotated(position);
           if (near) {
             componentMove = comp;
             this.positionMoveInit.x = position.x;
@@ -4321,18 +4383,40 @@ function snap(v, gr=grid) {
 }
 
 
-function textPromptAssign(key, message) {
-  textPromptDialog(componentEdit.options[key], message);
+function textPromptAssignSequence(prompts) {
+  if (!componentEdit || prompts.length === 0) {
+    componentEdit = null;
+    return;
+  }
+  const [prompt, ...nextPrompts] = prompts;
+  textPromptAssign(prompt.key, prompt.message, () => textPromptAssignSequence(nextPrompts), prompt.value);
+}
+
+
+function textPromptAssign(key, message, afterClose=null, value=null) {
+  const content = (value !== null) ? value : componentEdit.options[key];
+  textPromptDialog(content, message);
 
   textPrompt.addEventListener('close', () => {
     if (textPrompt.returnValue !== 'cancel' && componentEdit) {
       const text = textInput.value.trim();
       if (text.length > 0) {
         componentEdit.options[key] = text;
-        componentEdit.validateOptions();
+        if (key === 'rotate') {
+          componentEdit.validateRotationOption();
+          engine.createNodes();
+        }
+        else {
+          componentEdit.validateOptions();
+        }
       }
-      componentEdit = null;
       renderer.draw();
+    }
+    if (afterClose) {
+      afterClose();
+    }
+    else {
+      componentEdit = null;
     }
   }, { once: true });
 }
@@ -4369,3 +4453,4 @@ function closeConfirm() {
 
 </body>
 </html>
+
