@@ -399,6 +399,14 @@
     </section>
 
     <section class="tool-family">
+      <h2 data-i18n="processMenu">Process</h2>
+      <div class="tool-grid">
+        <button class="tool-button component-tool" data-action="cProcessReservoir"><span class="tool-symbol">500</span><span class="tool-label" data-i18n="cProcessReservoir">Process reservoir</span></button>
+        <button class="tool-button component-tool" data-action="cProcessPipe"><span class="tool-symbol">━</span><span class="tool-label" data-i18n="cProcessPipe">Process pipe</span></button>
+      </div>
+    </section>
+
+    <section class="tool-family">
       <h2 data-i18n="cylinderMenu">Cylinders</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cCylinder1"><span class="tool-symbol">⇥</span><span class="tool-label" data-i18n="cCylinder1">Single-acting</span></button>
@@ -529,6 +537,8 @@ const minCanvasWidth = 320 * canvasScale;
 const minCanvasHeight = 320 * canvasScale;
 const airPressure = 1; // bar absolute
 const compressorPressure = 6; // bar relative
+const processPressureMax = 500; // bar
+const processDefaultColor = '#b00000';
 const conductanceBase = 2000;
 const minTimestamp = parseInt('1900000000', 16);
 
@@ -580,6 +590,7 @@ const translations = {
     multipleMenu: 'Multiple',
     drawMenu: 'Draw',
     basicMenu: 'Basic',
+    processMenu: 'Process',
     valvesMenu: 'Valves',
     cValve22m: 'Valve 2/2 manual',
     cValve32b: 'Valve 3/2 button',
@@ -602,6 +613,8 @@ const translations = {
     cVisualIndicator: 'Visual indicator',
     cDifferentialPressureSwitch: 'Differential pressure switch',
     cAirTank: 'Air tank',
+    cProcessReservoir: 'Process reservoir',
+    cProcessPipe: 'Process pipe',
     cValveOr: 'OR valve',
     cValveAnd: 'AND valve',
     cylinderMenu: 'Cylinders',
@@ -651,6 +664,7 @@ const translations = {
     multipleMenu: 'Múltiple',
     drawMenu: 'Dibujar',
     basicMenu: 'Basicos',
+    processMenu: 'Proceso',
     valvesMenu: 'Válvulas',
     cValve22m: 'Válvula 2/2 manual',
     cValve32b: 'Válvula 3/2 pulsador',
@@ -673,6 +687,8 @@ const translations = {
     cVisualIndicator: 'Indicador visual',
     cDifferentialPressureSwitch: 'Presostato diferencial',
     cAirTank: 'Depósito de aire',
+    cProcessReservoir: 'Depósito de proceso',
+    cProcessPipe: 'Tubería de proceso',
     cValveOr: 'Válvula selectora (OR)',
     cValveAnd: 'Válvula simultaneidad (AND)',
     cylinderMenu: 'Cilindros',
@@ -774,6 +790,8 @@ document.addEventListener("click", (e) => {
     cVisualIndicator: () => { simulationStop(); drawMode='component'; componentType='VisualIndicator'; },
     cDifferentialPressureSwitch: () => { simulationStop(); drawMode='component'; componentType='DifferentialPressureSwitch'; },
     cAirTank: () => { simulationStop(); drawMode='component'; componentType='AirTank'; },
+    cProcessReservoir: () => { simulationStop(); drawMode='component'; componentType='ProcessReservoir'; },
+    cProcessPipe: () => { simulationStop(); drawMode='component'; componentType='ProcessPipe'; },
     cCylinder1: () => { simulationStop(); drawMode='component'; componentType='Cylinder1'; },
     cCylinder1Out: () => { simulationStop(); drawMode='component'; componentType='Cylinder1Out'; },
     cCylinder2: () => { simulationStop(); drawMode='component'; componentType='Cylinder2'; },
@@ -873,7 +891,7 @@ class ComponentBase {
   }
 
   canRotate() {
-    return this.type !== 'Pipe';
+    return !['Pipe', 'ProcessPipe'].includes(this.type);
   }
 
   getRotation() {
@@ -900,6 +918,7 @@ class ComponentBase {
     const dx = pos.x - this.x;
     const dy = pos.y - this.y;
     return {
+      ...pos,
       x: snap(this.x + dx * cos - dy * sin),
       y: snap(this.y + dx * sin + dy * cos),
     };
@@ -1182,6 +1201,11 @@ class ComponentBase {
   reset () {}
 
   colorPressure(pressure, bg = 0) {
+    pressure = Number(pressure);
+    if (isNaN(pressure)) pressure = airPressure;
+    if (pressure > compressorPressure) pressure = compressorPressure;
+    if (pressure < airPressure) pressure = airPressure;
+
     if (bg === 0) {
       let cp = 32 + Math.round(223 * Math.sqrt((pressure - airPressure) / (compressorPressure - airPressure)));
       return 'rgb(' + 0 + ',' + 0 + ',' + cp + ')';
@@ -1190,6 +1214,21 @@ class ComponentBase {
       let cp = 255 - Math.round(192 * ((pressure - airPressure) / (compressorPressure - airPressure)));
       return 'rgb(' + cp + ',' + cp + ',' + 255 + ')';
     }
+  }
+
+  colorProcessPressure(pressure, bg = 0) {
+    pressure = Number(pressure);
+    if (isNaN(pressure)) pressure = 0;
+    if (pressure > processPressureMax) pressure = processPressureMax;
+    if (pressure < 0) pressure = 0;
+
+    const ratio = pressure / processPressureMax;
+    if (bg === 0) {
+      const cr = 128 + Math.round(127 * Math.sqrt(ratio));
+      return 'rgb(' + cr + ',0,0)';
+    }
+    const c = 255 - Math.round(175 * ratio);
+    return 'rgb(255,' + c + ',' + c + ')';
   }
 
   computeFlow(node1, node2, conductance, dt) {
@@ -1317,6 +1356,41 @@ class Pipe extends ComponentBase {
   draw(ctx) {
     this.drawPipe(ctx, this.color);
   };
+
+  serialize(){
+    return {type:this.type, stamp:this.timestamp, init:this.init, end:this.end};
+  }
+}
+
+
+class ProcessPipe extends Pipe {
+  constructor(posInit, posEnd) {
+    super(posInit, posEnd);
+    this.type = 'ProcessPipe';
+    this.color = processDefaultColor;
+  }
+
+  vias() {
+    const via1 = {...this.init, domain: 'process'};
+    const via2 = {...this.end, domain: 'process'};
+    return this.rotateVias([via1, via2]);
+  }
+
+  reset() {
+    this.color = processDefaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    this.computeFlow(node1, node2, this.conductance, dt);
+    this.color = this.colorProcessPressure(0.5*(node1.pressure + node2.pressure));
+  }
+
+  draw(ctx) {
+    this.drawPipe(ctx, this.color);
+  }
 
   serialize(){
     return {type:this.type, stamp:this.timestamp, init:this.init, end:this.end};
@@ -1788,7 +1862,7 @@ class PressureReducer extends ComponentBase {
     this.color1 = defaultColor;
     this.color2 = defaultColor;
     this.options = {
-      pressure: 3,
+      pressure: 100,
     };
   }
 
@@ -2145,22 +2219,22 @@ class DifferentialPressureSwitch extends ComponentBase {
     this.color1 = defaultColor;
     this.color2 = defaultColor;
     this.options = {
-      pressure: 3,
+      pressure: 100,
     };
   }
 
   validateOptions() {
     this.options.pressure = Number(this.options.pressure);
     if (isNaN(this.options.pressure))
-      this.options.pressure = 3;
-    if (this.options.pressure > compressorPressure)
-      this.options.pressure = compressorPressure;
+      this.options.pressure = 100;
+    if (this.options.pressure > processPressureMax)
+      this.options.pressure = processPressureMax;
     if (this.options.pressure < 0.1)
       this.options.pressure = 0.1;
   }
 
   vias() {
-    const viaHP = {x:this.x, y:this.y-60};
+    const viaHP = {x:this.x, y:this.y-60, domain: 'process'};
     const via1 = {x:this.x-50, y:this.y};
     const via2 = {x:this.x+50, y:this.y};
     return this.rotateVias([viaHP, via1, via2]);
@@ -2178,14 +2252,14 @@ class DifferentialPressureSwitch extends ComponentBase {
     const nodeHP = engine.findNode(viaHP);
     const node1 = engine.findNode(via1);
     const node2 = engine.findNode(via2);
-    const targetPressure = airPressure + this.options.pressure;
+    const targetPressure = this.options.pressure;
 
     this.active = nodeHP.pressure > targetPressure;
     if (this.active && node1.pressure > node2.pressure + 0.02) {
       this.computeFlow(node1, node2, this.conductance, dt);
     }
 
-    this.colorHP = this.colorPressure(nodeHP.pressure);
+    this.colorHP = this.colorProcessPressure(nodeHP.pressure);
     this.color1 = this.colorPressure(node1.pressure);
     this.color2 = this.colorPressure(node2.pressure);
   }
@@ -2253,7 +2327,7 @@ class DifferentialPressureSwitch extends ComponentBase {
     ctx.fillText('HP', this.x, this.y-48);
     ctx.fillText('1', this.x-50, this.y+18);
     ctx.fillText('2', this.x+50, this.y+18);
-    ctx.fillText('P>', this.x, this.y+18);
+    ctx.fillText(this.options.pressure + ' bar', this.x, this.y+18);
     ctx.textAlign = 'start';
   }
 }
@@ -2342,6 +2416,114 @@ class AirTank extends ComponentBase {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  }
+}
+
+
+class ProcessReservoir extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'ProcessReservoir';
+    this.phase = 0;
+    this.currentPressure = 0;
+    this.color = processDefaultColor;
+    this.colorBody = '#fff';
+    this.options = {
+      pressureMin: 0,
+      pressureMax: 300,
+      period: 10,
+    };
+  }
+
+  validateOptions() {
+    this.options.pressureMin = Number(this.options.pressureMin);
+    this.options.pressureMax = Number(this.options.pressureMax);
+    this.options.period = Number(this.options.period);
+
+    if (isNaN(this.options.pressureMin)) this.options.pressureMin = 0;
+    if (isNaN(this.options.pressureMax)) this.options.pressureMax = 300;
+    if (isNaN(this.options.period)) this.options.period = 10;
+
+    if (this.options.pressureMin < 0) this.options.pressureMin = 0;
+    if (this.options.pressureMax < 0) this.options.pressureMax = 0;
+    if (this.options.pressureMin > processPressureMax) this.options.pressureMin = processPressureMax;
+    if (this.options.pressureMax > processPressureMax) this.options.pressureMax = processPressureMax;
+    if (this.options.pressureMin > this.options.pressureMax) {
+      const pressure = this.options.pressureMin;
+      this.options.pressureMin = this.options.pressureMax;
+      this.options.pressureMax = pressure;
+    }
+    if (this.options.period < 0.1) this.options.period = 0.1;
+    if (this.options.period > 3600) this.options.period = 3600;
+  }
+
+  vias() {
+    const viaTop = {x:this.x, y:this.y-50, domain: 'process'};
+    const via1 = {x:this.x-50, y:this.y, domain: 'process'};
+    const via2 = {x:this.x+50, y:this.y, domain: 'process'};
+    return this.rotateVias([viaTop, via1, via2]);
+  }
+
+  reset() {
+    this.phase = 0;
+    this.currentPressure = this.options.pressureMin;
+    this.color = this.colorProcessPressure(this.currentPressure);
+    this.colorBody = this.colorProcessPressure(this.currentPressure, 1);
+  }
+
+  update(ctx, engine, dt) {
+    this.phase += dt;
+    if (this.phase > this.options.period) {
+      this.phase = this.phase % this.options.period;
+    }
+    const ratio = 0.5 - 0.5*Math.cos(2*Math.PI*this.phase/this.options.period);
+    this.currentPressure = this.options.pressureMin +
+                           (this.options.pressureMax - this.options.pressureMin) * ratio;
+
+    for (const via of this.vias()) {
+      const node = engine.findNode(via);
+      node.pressure = this.currentPressure;
+      node.mass = node.pressure * node.volume;
+    }
+
+    this.color = this.colorProcessPressure(this.currentPressure);
+    this.colorBody = this.colorProcessPressure(this.currentPressure, 1);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-55, this.y-55, this.x+55, this.y+30, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y-50, 0, 26, this.color);
+    this.drawPort(ctx, this.x-50, this.y, 18, 0, this.color);
+    this.drawPort(ctx, this.x+50, this.y, -18, 0, this.color);
+
+    const color = (this.selected) ? selectedColor : processDefaultColor;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = this.colorBody;
+    ctx.beginPath();
+    ctx.moveTo(this.x-28, this.y-24);
+    ctx.lineTo(this.x+28, this.y-24);
+    ctx.arc(this.x+28, this.y, 24, -Math.PI*0.5, Math.PI*0.5);
+    ctx.lineTo(this.x-28, this.y+24);
+    ctx.arc(this.x-28, this.y, 24, Math.PI*0.5, Math.PI*1.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.x-16, this.y+9);
+    ctx.bezierCurveTo(this.x-6, this.y-13, this.x+6, this.y+31, this.x+16, this.y+9);
+    ctx.stroke();
+
+    ctx.font = textFont;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.fillText(this.currentPressure.toFixed(0) + ' bar', this.x, this.y+44);
+    ctx.textAlign = 'start';
   }
 }
 
@@ -4504,8 +4686,9 @@ class Valve52p extends ComponentBase {
 
 class Node {
   constructor(pos) {
+    this.domain = pos.domain || 'pneumatic';
     this.volume = 10; // cm3
-    this.pressure = airPressure; // bar
+    this.pressure = (this.domain === 'process') ? 0 : airPressure; // bar
     this.mass = this.pressure * this.volume;
     this.x = pos.x;
     this.y = pos.y;
@@ -4546,8 +4729,9 @@ class Engine {
   }
 
   findNode(pos) {
+    const domain = pos.domain || 'pneumatic';
     for (const node of this.nodes) {
-      if ((node.x === pos.x) && (node.y === pos.y)) {
+      if ((node.x === pos.x) && (node.y === pos.y) && (node.domain === domain)) {
         return node;
       }
     }
@@ -4726,8 +4910,16 @@ class UIController {
     if (comp.type === 'Compressor') {
       prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
     }
-    if (['PressureReducer', 'BackPressureRegulator', 'DifferentialPressureSwitch'].includes(comp.type)) {
+    if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
       prompts.push({key: 'pressure', message: 'Pressure setting (0.1 - ' + compressorPressure + ' bar):'});
+    }
+    if (comp.type === 'DifferentialPressureSwitch') {
+      prompts.push({key: 'pressure', message: 'HP pressure setting (0.1 - ' + processPressureMax + ' bar):'});
+    }
+    if (comp.type === 'ProcessReservoir') {
+      prompts.push({key: 'pressureMin', message: 'Process pressure min (0 - ' + processPressureMax + ' bar):'});
+      prompts.push({key: 'pressureMax', message: 'Process pressure max (0 - ' + processPressureMax + ' bar):'});
+      prompts.push({key: 'period', message: 'Period (0.1 - 3600 s):'});
     }
     if (['Valve32r', 'Roller'].includes(comp.type)) {
       prompts.push({key: 'reference', message: 'Reference:'});
@@ -4874,6 +5066,7 @@ class UIController {
       if (componentType === 'VisualIndicator') comp = new VisualIndicator(position);
       if (componentType === 'DifferentialPressureSwitch') comp = new DifferentialPressureSwitch(position);
       if (componentType === 'AirTank') comp = new AirTank(position);
+      if (componentType === 'ProcessReservoir') comp = new ProcessReservoir(position);
       if (componentType === 'ValveOr') comp = new ValveOr(position);
       if (componentType === 'ValveAnd') comp = new ValveAnd(position);
 
@@ -4888,16 +5081,18 @@ class UIController {
       }
 
       // Draw pipe
-      if (componentType === 'Pipe') {
+      if (['Pipe', 'ProcessPipe'].includes(componentType)) {
         if (initPos === null) {
           initPos = position;
-          editPipe = new Pipe(initPos, initPos);
+          editPipe = (componentType === 'ProcessPipe')
+            ? new ProcessPipe(initPos, initPos)
+            : new Pipe(initPos, initPos);
           comp = editPipe;
-          editPipe.color = selectedColor;
+          editPipe.color = (componentType === 'ProcessPipe') ? processDefaultColor : selectedColor;
         }
         else {
           editPipe.moveEnd(position);
-          editPipe.color = '#000';
+          editPipe.color = (componentType === 'ProcessPipe') ? processDefaultColor : '#000';
           if (editPipe.init.x === editPipe.end.x &&
               editPipe.init.y === editPipe.end.y) {
             this.engine.deleteComponent(editPipe);
@@ -4957,7 +5152,7 @@ class UIController {
   _onMove(e){
     let position = this._getMousePos(e);
 
-    if ((drawMode === 'component') && (componentType === 'Pipe') && (initPos !== null)) {
+    if ((drawMode === 'component') && (['Pipe', 'ProcessPipe'].includes(componentType)) && (initPos !== null)) {
       editPipe.moveEnd(position);
       this.renderer.draw();
     }
@@ -5086,6 +5281,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
     if (comp.type === 'DifferentialPressureSwitch') newcomp = new DifferentialPressureSwitch({x:comp.x, y:comp.y});
     if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
+    if (comp.type === 'ProcessReservoir') newcomp = new ProcessReservoir({x:comp.x, y:comp.y});
     if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
     if (comp.type === 'ValveAnd')   newcomp = new ValveAnd({x:comp.x, y:comp.y});
     if (comp.type === 'Text')       newcomp = new Text({x:comp.x, y:comp.y});
@@ -5093,6 +5289,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Roller')     newcomp = new Roller({x:comp.x, y:comp.y});
     if (comp.type === 'ValveNret')     newcomp = new ValveNret({x:comp.x, y:comp.y});
     if (comp.type === 'Pipe')       newcomp = new Pipe(comp.init, comp.end);
+    if (comp.type === 'ProcessPipe') newcomp = new ProcessPipe(comp.init, comp.end);
     if (newcomp) {
       Object.assign(newcomp.options, comp.options);
       newcomp.validateOptions();
