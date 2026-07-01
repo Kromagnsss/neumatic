@@ -20,6 +20,7 @@
     padding-top: 35px;
     font-family: sans-serif;
     font-size: 14px;
+    overflow: hidden;
   }
 
   .menu {
@@ -108,8 +109,148 @@
   }
 
   .canvas {
-    display:block;
+    display: block;
+    position: fixed;
+    left: 260px;
+    top: 89px;
     background:#f8f8f8;
+  }
+
+  .tool-sidebar {
+    position: fixed;
+    left: 0;
+    top: 35px;
+    bottom: 0;
+    width: 260px;
+    overflow-y: auto;
+    background: #f6f7f8;
+    border-right: 1px solid #b8bec4;
+    padding: 8px;
+    box-sizing: border-box;
+    z-index: 900;
+  }
+
+  .tool-family {
+    margin-bottom: 12px;
+  }
+
+  .tool-family h2 {
+    margin: 8px 4px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #48515a;
+    letter-spacing: 0;
+  }
+
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .tool-button,
+  .mode-button {
+    border: 1px solid #b6bec6;
+    background: #fff;
+    color: #202428;
+    cursor: pointer;
+    font: inherit;
+    border-radius: 6px;
+    user-select: none;
+    box-sizing: border-box;
+  }
+
+  .tool-button {
+    min-height: 62px;
+    padding: 6px 5px;
+    display: grid;
+    grid-template-rows: 24px auto;
+    align-items: center;
+    justify-items: center;
+    gap: 3px;
+  }
+
+  .tool-symbol {
+    min-width: 42px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #202428;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 1;
+    background: #fdfdfd;
+  }
+
+  .tool-symbol.round {
+    width: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+  }
+
+  .tool-label {
+    font-size: 11px;
+    line-height: 1.12;
+    text-align: center;
+  }
+
+  .tool-button:hover,
+  .mode-button:hover {
+    background: #eef5ff;
+    border-color: #6d94c7;
+  }
+
+  .tool-button.is-active,
+  .mode-button.is-active {
+    background: #dbeafe;
+    border-color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px #1d4ed8;
+  }
+
+  .mode-toolbar {
+    position: fixed;
+    top: 35px;
+    left: 260px;
+    right: 0;
+    min-height: 54px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 10px;
+    box-sizing: border-box;
+    border-bottom: 1px solid #b8bec4;
+    background: #fff;
+    z-index: 850;
+  }
+
+  .mode-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .mode-group-title {
+    font-size: 12px;
+    color: #5b6570;
+    margin-right: 2px;
+  }
+
+  .mode-button {
+    height: 34px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mode-icon {
+    width: 24px;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1;
   }
 
   dialog {
@@ -170,6 +311,41 @@
           <li><a href="#" data-action="fOpen"  data-i18n="fOpen">Open Schematic</a></li>
 
           <li class="has-submenu">
+            <a href="#" data-i18n="fOpenExample">Open Example</a>
+            <ul class="submenu">
+              <li class="has-submenu">
+                <a href="#" data-i18n="singleMenu">Single</a>
+                <ul class="submenu">
+                  <li><a href="./index.html?loadFile=single-22.txt" target="_blank" data-i18n="eSingle01">Valve 2/2</a></li>
+                  <li><a href="./index.html?loadFile=single-32.txt" target="_blank" data-i18n="eSingle02">Valve 3/2</a></li>
+                  <li><a href="./index.html?loadFile=single-32-auto.txt" target="_blank" data-i18n="eSingle03">Valve 3/2 auto</a></li>
+                  <li><a href="./index.html?loadFile=single-32-and.txt" target="_blank" data-i18n="eSingle04">Valve AND</a></li>
+                  <li><a href="./index.html?loadFile=single-32-or.txt" target="_blank" data-i18n="eSingle05">Valve OR</a></li>
+                  <li><a href="./index.html?loadFile=single-32-x2.txt" target="_blank" data-i18n="eSingle06">Valve 3/2 x2</a></li>
+                </ul>
+              </li>
+
+              <li class="has-submenu">
+                <a href="#" data-i18n="doubleMenu">Double</a>
+                <ul class="submenu">
+                  <li><a href="./index.html?loadFile=double-32-manual.txt"  target="_blank" data-i18n="eDouble01">Valve 3/2 manual</a></li>
+                  <li><a href="./index.html?loadFile=double-52-manual.txt"  target="_blank" data-i18n="eDouble02">Valve 5/2 manual</a></li>
+                  <li><a href="./index.html?loadFile=double-52-piloted.txt" target="_blank" data-i18n="eDouble03">Valve 5/2 pneu.</a></li>
+                  <li><a href="./index.html?loadFile=double-52-auto.txt"    target="_blank" data-i18n="eDouble04">Valve 5/2 + Roller + Flow</a></li>
+                </ul>
+              </li>
+
+              <li class="has-submenu">
+                <a href="#" data-i18n="multipleMenu">Multiple</a>
+                <ul class="submenu">
+                  <li><a href="./index.html?loadFile=multi-abab.txt"  target="_blank" data-i18n="eMulti01">A+ B+ A- B-</a></li>
+                  <li><a href="./index.html?loadFile=multi-abba.txt"  target="_blank" data-i18n="eMulti02">A+ B+ B- A-</a></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li class="has-submenu">
             <a href="#" data-i18n="fSave">Save Schematic</a>
             <ul class="submenu">
               <li><a href="#" data-action="fSaveStudent" data-i18n="fSaveStudent">Student</a></li>
@@ -184,121 +360,83 @@
         </ul>
       </li>
 
-      <li class="menu-item">
-        <div class="menu-titulo" data-i18n="drawMenu">Draw</div>
-        <ul class="submenu">
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="valvesMenu">Valves</a>
-            <ul class="submenu">
-              <li><a href="#" data-action="cValve22m" data-i18n="cValve22m">Valve 2/2 manual</a></li>
-              <li><a href="#" data-action="cValve32b" data-i18n="cValve32b">Valve 3/2 button</a></li>
-              <li><a href="#" data-action="cValve32m" data-i18n="cValve32m">Valve 3/2 manual</a></li>
-              <li><a href="#" data-action="cValve32r" data-i18n="cValve32r">Valve 3/2 with roller</a></li>
-              <li><a href="#" data-action="cRoller"   data-i18n="cRoller">Roller of valve</a></li>
-              <li><a href="#" data-action="cValve32p" data-i18n="cValve32p">Valve 3/2 pneu. pilot</a></li>
-              <li><a href="#" data-action="cValve32ps" data-i18n="cValve32ps">Valve 3/2 pneu. pilot + spring</a></li>
-              <li><a href="#" data-action="cValve42m" data-i18n="cValve42m">Valve 4/2 manual</a></li>
-              <li><a href="#" data-action="cValve52m" data-i18n="cValve52m">Valve 5/2 manual</a></li>
-              <li><a href="#" data-action="cValve52p" data-i18n="cValve52p">Valve 5/2 pneu. pilot</a></li>
-            </ul>
-          </li>
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="auxValvesMenu">Aux. valves</a>
-            <ul class="submenu">
-              <li><a href="#" data-action="cValveNret" data-i18n="cValveNret">Non-return valve</a></li>
-              <li><a href="#" data-action="cValveFlow" data-i18n="cValveFlow">Choke valve</a></li>
-              <li><a href="#" data-action="cValveIsol" data-i18n="cValveIsol">Isolation valve</a></li>
-              <li><a href="#" data-action="cPressureReducer" data-i18n="cPressureReducer">Pressure reducer</a></li>
-              <li><a href="#" data-action="cBackPressureRegulator" data-i18n="cBackPressureRegulator">Back-pressure regulator</a></li>
-              <li><a href="#" data-action="cFilter" data-i18n="cFilter">Filter</a></li>
-              <li><a href="#" data-action="cTestPort" data-i18n="cTestPort">Test port</a></li>
-              <li><a href="#" data-action="cVisualIndicator" data-i18n="cVisualIndicator">Visual indicator</a></li>
-              <li><a href="#" data-action="cAirTank" data-i18n="cAirTank">Air tank</a></li>
-              <li><a href="#" data-action="cValveOr"   data-i18n="cValveOr">Or valve</a></li>
-              <li><a href="#" data-action="cValveAnd"  data-i18n="cValveAnd">And valve</a></li>
-            </ul>
-          </li>
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="cylinderMenu">Cylinder</a>
-            <ul class="submenu">
-              <li><a href="#" data-action="cCylinder1" data-i18n="cCylinder1">Single-acting</a></li>
-              <li><a href="#" data-action="cCylinder1Out" data-i18n="cCylinder1Out">Single-acting rod out</a></li>
-              <li><a href="#" data-action="cCylinder2" data-i18n="cCylinder2">Double-acting</a></li>
-            </ul>
-          </li>
-
-          <li><a href="#" data-action="cPipe"   data-i18n="cPipe">Pipe</a></li>
-          <li><a href="#" data-action="cPress"  data-i18n="cPress">Compressor</a></li>
-          <li><a href="#" data-action="cEscape" data-i18n="cEscape">Escape</a></li>
-          <li><a href="#" data-action="cText"   data-i18n="cText">Text</a></li>
-          <li><a href="#" data-action="cManometer"  data-i18n="cManometer">Manometer</a></li>
-
-        </ul>
-      </li>
-
-      <li class="menu-item">
-        <div class="menu-titulo" data-i18n="examplesMenu">Examples</div>
-        <ul class="submenu">
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="singleMenu">Single</a>
-            <ul class="submenu">
-              <li><a href="./index.html?loadFile=single-22.txt" target="_blank" data-i18n="eSingle01">Valve 2/2</a></li>
-              <li><a href="./index.html?loadFile=single-32.txt" target="_blank" data-i18n="eSingle02">Valve 3/2</a></li>
-              <li><a href="./index.html?loadFile=single-32-auto.txt" target="_blank" data-i18n="eSingle03">Valve 3/2 auto</a></li>
-              <li><a href="./index.html?loadFile=single-32-and.txt" target="_blank" data-i18n="eSingle04">Valve AND</a></li>
-              <li><a href="./index.html?loadFile=single-32-or.txt" target="_blank" data-i18n="eSingle05">Valve OR</a></li>
-              <li><a href="./index.html?loadFile=single-32-x2.txt" target="_blank" data-i18n="eSingle06">Valve 3/2 x2</a></li>
-            </ul>
-          </li>
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="doubleMenu">Double</a>
-            <ul class="submenu">
-              <li><a href="./index.html?loadFile=double-32-manual.txt"  target="_blank" data-i18n="eDouble01">Valve 3/2 manual</a></li>
-              <li><a href="./index.html?loadFile=double-52-manual.txt"  target="_blank" data-i18n="eDouble02">Valve 5/2 manual</a></li>
-              <li><a href="./index.html?loadFile=double-52-piloted.txt" target="_blank" data-i18n="eDouble03">Valve 5/2 pneu.</a></li>
-              <li><a href="./index.html?loadFile=double-52-auto.txt"    target="_blank" data-i18n="eDouble04">Valve 5/2 + Roller + Flow</a></li>
-            </ul>
-          </li>
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="multipleMenu">Multiple</a>
-            <ul class="submenu">
-              <li><a href="./index.html?loadFile=multi-abab.txt"  target="_blank" data-i18n="eMulti01">A+ B+ A- B-</a></li>
-              <li><a href="./index.html?loadFile=multi-abba.txt"  target="_blank" data-i18n="eMulti02">A+ B+ B- A-</a></li>
-            </ul>
-          </li>
-
-        </ul>
-      </li>
-
-      <li class="menu-item">
-        <div class="menu-titulo" data-i18n="editMenu">Edit</div>
-        <ul class="submenu">
-          <li><a href="#" data-action="eDelete" data-i18n="eDelete">Delete</a></li>
-          <li><a href="#" data-action="eMove"   data-i18n="eMove">Move</a></li>
-          <li><a href="#" data-action="eOptions" data-i18n="eOptions">Options</a></li>
-          <li><a href="#" data-action="eFlip" data-i18n="eFlip">Flip</a></li>
-        </ul>
-      </li>
-
-      <li class="menu-item">
-        <div class="menu-titulo" data-i18n="simulateMenu">Simulate</div>
-        <ul class="submenu">
-          <li><a href="#" data-action="sInit"     data-i18n="sInit">Init</a></li>
-          <li><a href="#" data-action="sStep"     data-i18n="sStep">Step 's'</a></li>
-          <li><a href="#" data-action="sStop"     data-i18n="sStop">Stop</a></li>
-          <li><a href="#" data-action="sContinue" data-i18n="sContinue">Continue</a></li>
-          <li><a href="#" data-action="sReset" data-i18n="sReset">Reset</a></li>
-        </ul>
-      </li>
-
     </ul>
   </nav>
+
+  <aside id="toolSidebar" class="tool-sidebar">
+    <section class="tool-family">
+      <h2 data-i18n="valvesMenu">Valves</h2>
+      <div class="tool-grid">
+        <button class="tool-button component-tool" data-action="cValve22m"><span class="tool-symbol">2/2</span><span class="tool-label" data-i18n="cValve22m">Valve 2/2 manual</span></button>
+        <button class="tool-button component-tool" data-action="cValve32b"><span class="tool-symbol">3/2</span><span class="tool-label" data-i18n="cValve32b">Valve 3/2 button</span></button>
+        <button class="tool-button component-tool" data-action="cValve32m"><span class="tool-symbol">3/2</span><span class="tool-label" data-i18n="cValve32m">Valve 3/2 manual</span></button>
+        <button class="tool-button component-tool" data-action="cValve32r"><span class="tool-symbol">3/2</span><span class="tool-label" data-i18n="cValve32r">Valve 3/2 with roller</span></button>
+        <button class="tool-button component-tool" data-action="cRoller"><span class="tool-symbol round">R</span><span class="tool-label" data-i18n="cRoller">Roller of valve</span></button>
+        <button class="tool-button component-tool" data-action="cValve32p"><span class="tool-symbol">3/2 P</span><span class="tool-label" data-i18n="cValve32p">Valve 3/2 pneu. pilot</span></button>
+        <button class="tool-button component-tool" data-action="cValve32ps"><span class="tool-symbol">3/2 S</span><span class="tool-label" data-i18n="cValve32ps">Valve 3/2 pneu. pilot + spring</span></button>
+        <button class="tool-button component-tool" data-action="cValve42m"><span class="tool-symbol">4/2</span><span class="tool-label" data-i18n="cValve42m">Valve 4/2 manual</span></button>
+        <button class="tool-button component-tool" data-action="cValve52m"><span class="tool-symbol">5/2</span><span class="tool-label" data-i18n="cValve52m">Valve 5/2 manual</span></button>
+        <button class="tool-button component-tool" data-action="cValve52p"><span class="tool-symbol">5/2 P</span><span class="tool-label" data-i18n="cValve52p">Valve 5/2 pneu. pilot</span></button>
+      </div>
+    </section>
+
+    <section class="tool-family">
+      <h2 data-i18n="auxValvesMenu">Aux. valves</h2>
+      <div class="tool-grid">
+        <button class="tool-button component-tool" data-action="cValveNret"><span class="tool-symbol">>|</span><span class="tool-label" data-i18n="cValveNret">Non-return valve</span></button>
+        <button class="tool-button component-tool" data-action="cValveFlow"><span class="tool-symbol">↗</span><span class="tool-label" data-i18n="cValveFlow">Choke valve</span></button>
+        <button class="tool-button component-tool" data-action="cValveIsol"><span class="tool-symbol">X</span><span class="tool-label" data-i18n="cValveIsol">Isolation valve</span></button>
+        <button class="tool-button component-tool" data-action="cPressureReducer"><span class="tool-symbol">RED</span><span class="tool-label" data-i18n="cPressureReducer">Pressure reducer</span></button>
+        <button class="tool-button component-tool" data-action="cBackPressureRegulator"><span class="tool-symbol">BPR</span><span class="tool-label" data-i18n="cBackPressureRegulator">Back-pressure regulator</span></button>
+        <button class="tool-button component-tool" data-action="cFilter"><span class="tool-symbol">F</span><span class="tool-label" data-i18n="cFilter">Filter</span></button>
+        <button class="tool-button component-tool" data-action="cTestPort"><span class="tool-symbol round">T</span><span class="tool-label" data-i18n="cTestPort">Test port</span></button>
+        <button class="tool-button component-tool" data-action="cVisualIndicator"><span class="tool-symbol round">●</span><span class="tool-label" data-i18n="cVisualIndicator">Visual indicator</span></button>
+        <button class="tool-button component-tool" data-action="cAirTank"><span class="tool-symbol">▭</span><span class="tool-label" data-i18n="cAirTank">Air tank</span></button>
+        <button class="tool-button component-tool" data-action="cValveOr"><span class="tool-symbol">OR</span><span class="tool-label" data-i18n="cValveOr">OR valve</span></button>
+        <button class="tool-button component-tool" data-action="cValveAnd"><span class="tool-symbol">AND</span><span class="tool-label" data-i18n="cValveAnd">AND valve</span></button>
+      </div>
+    </section>
+
+    <section class="tool-family">
+      <h2 data-i18n="cylinderMenu">Cylinders</h2>
+      <div class="tool-grid">
+        <button class="tool-button component-tool" data-action="cCylinder1"><span class="tool-symbol">⇥</span><span class="tool-label" data-i18n="cCylinder1">Single-acting</span></button>
+        <button class="tool-button component-tool" data-action="cCylinder1Out"><span class="tool-symbol">⇤</span><span class="tool-label" data-i18n="cCylinder1Out">Single-acting rod out</span></button>
+        <button class="tool-button component-tool" data-action="cCylinder2"><span class="tool-symbol">⇄</span><span class="tool-label" data-i18n="cCylinder2">Double-acting</span></button>
+      </div>
+    </section>
+
+    <section class="tool-family">
+      <h2 data-i18n="basicMenu">Basic</h2>
+      <div class="tool-grid">
+        <button class="tool-button component-tool" data-action="cPipe"><span class="tool-symbol">─</span><span class="tool-label" data-i18n="cPipe">Pipe</span></button>
+        <button class="tool-button component-tool" data-action="cPress"><span class="tool-symbol round">P</span><span class="tool-label" data-i18n="cPress">Compressor</span></button>
+        <button class="tool-button component-tool" data-action="cEscape"><span class="tool-symbol">▽</span><span class="tool-label" data-i18n="cEscape">Escape</span></button>
+        <button class="tool-button component-tool" data-action="cManometer"><span class="tool-symbol round">M</span><span class="tool-label" data-i18n="cManometer">Manometer</span></button>
+        <button class="tool-button component-tool" data-action="cText"><span class="tool-symbol">TXT</span><span class="tool-label" data-i18n="cText">Text</span></button>
+      </div>
+    </section>
+  </aside>
+
+  <div id="modeToolbar" class="mode-toolbar">
+    <div class="mode-group">
+      <span class="mode-group-title" data-i18n="editMenu">Edit</span>
+      <button class="mode-button" data-action="eDelete" data-draw-mode="Delete"><span class="mode-icon">⌫</span><span data-i18n="eDelete">Delete</span></button>
+      <button class="mode-button" data-action="eMove" data-draw-mode="Move"><span class="mode-icon">↔↕</span><span data-i18n="eMove">Move</span></button>
+      <button class="mode-button" data-action="eOptions" data-draw-mode="Options"><span class="mode-icon">⚙</span><span data-i18n="eOptions">Options</span></button>
+      <button class="mode-button" data-action="eFlip" data-draw-mode="Flip"><span class="mode-icon">⇋</span><span data-i18n="eFlip">Flip</span></button>
+      <button class="mode-button" data-action="eRotate" data-draw-mode="Rotate"><span class="mode-icon">↻</span><span data-i18n="eRotate">Rotate</span></button>
+    </div>
+
+    <div class="mode-group">
+      <span class="mode-group-title" data-i18n="simulateMenu">Simulate</span>
+      <button class="mode-button" data-action="sInit" data-sim-mode="sInit"><span class="mode-icon">⏮</span><span data-i18n="sInit">Init</span></button>
+      <button class="mode-button" data-action="sStep" data-sim-mode="sStep"><span class="mode-icon">⏭</span><span data-i18n="sStep">Step 's'</span></button>
+      <button class="mode-button" data-action="sStop" data-sim-mode="sStop"><span class="mode-icon">■</span><span data-i18n="sStop">Stop</span></button>
+      <button class="mode-button" data-action="sContinue" data-sim-mode="sContinue"><span class="mode-icon">▶</span><span data-i18n="sContinue">Continue</span></button>
+      <button class="mode-button" data-action="sReset" data-sim-mode="sReset"><span class="mode-icon">↺</span><span data-i18n="sReset">Reset</span></button>
+    </div>
+  </div>
 
   <canvas id="canvas" class="canvas"></canvas>
 
@@ -396,6 +534,8 @@ const minTimestamp = parseInt('1900000000', 16);
 
 let drawMode = null;
 let componentType = null;
+let selectedComponentAction = null;
+let simulationMode = null;
 let componentMove = null;
 let componentEdit = null;
 let editPipe = null;
@@ -426,6 +566,7 @@ const translations = {
     fSwap: 'Swap Screen',
     fNew: 'New Schematic',
     fOpen: 'Open Schematic',
+    fOpenExample: 'Open Example',
     fSave: 'Save Schematic',
     fSaveStudent: 'Student',
     fSaveTeacher: 'Teacher',
@@ -437,6 +578,7 @@ const translations = {
     doubleMenu: 'Double',
     multipleMenu: 'Multiple',
     drawMenu: 'Draw',
+    basicMenu: 'Basic',
     valvesMenu: 'Valves',
     cValve22m: 'Valve 2/2 manual',
     cValve32b: 'Valve 3/2 button',
@@ -474,6 +616,7 @@ const translations = {
     eMove: 'Move',
     eOptions: 'Options',
     eFlip: 'Flip',
+    eRotate: 'Rotate',
     simulateMenu: 'Simulate',
     sInit: 'Init',
     sStep: "Step 's'",
@@ -493,6 +636,7 @@ const translations = {
     fSwap: 'Cambiar pantalla',
     fNew: 'Nuevo Esquema',
     fOpen: 'Abrir Esquema',
+    fOpenExample: 'Abrir ejemplo',
     fSave: 'Guardar Esquema',
     fSaveStudent: 'Alumno',
     fSaveTeacher: 'Profesor',
@@ -504,6 +648,7 @@ const translations = {
     doubleMenu: 'Doble',
     multipleMenu: 'Múltiple',
     drawMenu: 'Dibujar',
+    basicMenu: 'Basicos',
     valvesMenu: 'Válvulas',
     cValve22m: 'Válvula 2/2 manual',
     cValve32b: 'Válvula 3/2 pulsador',
@@ -541,6 +686,7 @@ const translations = {
     eMove: 'Mover',
     eOptions: 'Opciones',
     eFlip: 'Voltear',
+    eRotate: 'Girar',
     simulateMenu: 'Simular',
     sInit: 'Iniciar',
     sStep: "Paso 's'",
@@ -580,8 +726,9 @@ document.addEventListener("click", (e) => {
 
 /* menu actions */
 document.addEventListener("click", (e) => {
-  const item = e.target.closest("a[data-action]");
+  const item = e.target.closest("[data-action]");
   if (!item) return;
+  e.preventDefault();
 
   const action = item.dataset.action;
 
@@ -631,6 +778,7 @@ document.addEventListener("click", (e) => {
     eMove: () => { simulationStop(); drawMode='Move'; },
     eOptions: () => { simulationStop(); drawMode='Options'; },
     eFlip: () => { simulationStop(); drawMode='Flip'; },
+    eRotate: () => { simulationStop(); drawMode='Rotate'; },
 
     sInit: () => { simulationInit(); },
     sStep: () => { simulationStep(); },
@@ -639,13 +787,59 @@ document.addEventListener("click", (e) => {
     sReset: () => { simulationReset(); },
   };
 
-  actions[action]?.();
+  if (!actions[action]) return;
+  actions[action]();
+  syncActionState(action);
+  updateControlHighlights();
 
   // Close submenus after action
   document.querySelectorAll(".submenu").forEach(sm =>
     sm.classList.remove("active")
   );
 });
+
+function syncActionState(action) {
+  const editActions = ['eDelete', 'eMove', 'eOptions', 'eFlip', 'eRotate'];
+  const simActions = ['sInit', 'sStep', 'sStop', 'sContinue', 'sReset'];
+
+  if (action.startsWith('c')) {
+    selectedComponentAction = action;
+    simulationMode = null;
+    return;
+  }
+
+  if (editActions.includes(action)) {
+    selectedComponentAction = null;
+    simulationMode = null;
+    return;
+  }
+
+  if (simActions.includes(action)) {
+    selectedComponentAction = null;
+    simulationMode = action;
+    return;
+  }
+
+  if (['fNew', 'fOpen'].includes(action)) {
+    selectedComponentAction = null;
+    simulationMode = null;
+  }
+}
+
+function updateControlHighlights() {
+  document.querySelectorAll('.component-tool[data-action]').forEach(button => {
+    const active = drawMode === 'component' && button.dataset.action === selectedComponentAction;
+    button.classList.toggle('is-active', active);
+  });
+
+  document.querySelectorAll('.mode-button[data-draw-mode]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.drawMode === drawMode);
+  });
+
+  document.querySelectorAll('.mode-button[data-sim-mode]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.simMode === simulationMode);
+  });
+}
 
 
 /*************************************************************************/
@@ -2480,8 +2674,19 @@ class Cylinder1Out extends Cylinder1 {
   constructor(pos) {
     super(pos);
     this.type = 'Cylinder1Out';
+    this.setReturnFriction();
     this.position.actual = this.position.max;
     this.shift = this.maxShift;
+  }
+
+  setReturnFriction() {
+    this.frictionStatic = 1.2; // kgf, seal friction only
+    this.frictionDynamic = 0.8; // kgf
+  }
+
+  validateOptions() {
+    super.validateOptions();
+    this.setReturnFriction();
   }
 
   vias() {
@@ -2541,32 +2746,27 @@ class Cylinder1Out extends Cylinder1 {
       const springCompression = this.position.max - this.position.actual;
       const forceSpring = this.springForceMin + springCompression * this.springForceConst;
       let netForce = forceSpring - forcePiston;
+      const movingMass = this.massRod + this.options.massLoad;
 
       if (this.speed === 0) {
-        if (netForce > 0) {
-          if (netForce > this.frictionStatic)
-            netForce -= this.frictionDynamic;
-          else
-            netForce = 0;
-          this.speed = 0.1 * dt * netForce * 9.8 / (this.massRod + this.options.massLoad);
+        if (Math.abs(netForce) > this.frictionStatic) {
+          netForce -= this.frictionDynamic * Math.sign(netForce);
+          this.speed = 0.1 * dt * netForce * 9.8 / movingMass;
         }
         else {
-          this.speed = 0.1 * dt * netForce * 9.8 / this.massRod;
+          netForce = 0;
         }
       }
-      else if (this.speed > 0) {
+      else {
         netForce -= this.frictionDynamic * Math.sign(this.speed);
-        const dspeed = 0.1 * dt * netForce * 9.8 / (this.massRod + this.options.massLoad);
-        if (Math.sign(dspeed) === Math.sign(this.speed) &&
+        const dspeed = 0.1 * dt * netForce * 9.8 / movingMass;
+        if (Math.sign(dspeed) !== Math.sign(this.speed) &&
           Math.abs(dspeed) > Math.abs(this.speed)) {
           this.speed = 0;
         }
         else {
           this.speed += dspeed;
         }
-      }
-      else {
-        this.speed += 0.1 * dt * netForce * 9.8 / this.massRod;
       }
 
       this.position.actual += 0.1 * dt * this.speed;
@@ -4313,6 +4513,7 @@ class UIController {
     this.positionCompInit = {x:0, y:0};
 
     this.canvas.addEventListener('mousedown', e => this._onDown(e));
+    this.canvas.addEventListener('dblclick', e => this._onDoubleClick(e));
     window.addEventListener('mousemove', e => this._onMove(e));
     window.addEventListener('mouseup', e => this._onUp(e));
     window.addEventListener("resize", e => this._resizeCanvas());
@@ -4334,6 +4535,7 @@ class UIController {
 
   _escape() {
     drawMode = null;
+    selectedComponentAction = null;
     componentMove = null;
     if (editPipe) {
       this.engine.deleteComponent(editPipe)
@@ -4341,13 +4543,32 @@ class UIController {
     editPipe = null;
     pipeMove = null;
     initPos = null;
+    updateControlHighlights();
   }
 
   _resizeCanvas(e) {
     const canvas = this.canvas;
     const ctx = canvas.getContext('2d');
-    const width = window.innerWidth*canvasScale;
-    const height = (window.innerHeight - 35)*canvasScale ;
+    const menu = document.querySelector('.menu');
+    const sidebar = document.getElementById('toolSidebar');
+    const toolbar = document.getElementById('modeToolbar');
+    const menuHeight = menu ? menu.offsetHeight : 35;
+    const sidebarWidth = sidebar ? sidebar.offsetWidth : 260;
+    const toolbarHeight = toolbar ? toolbar.offsetHeight : 54;
+
+    if (sidebar) {
+      sidebar.style.top = menuHeight + 'px';
+      sidebar.style.height = 'calc(100vh - ' + menuHeight + 'px)';
+    }
+    if (toolbar) {
+      toolbar.style.top = menuHeight + 'px';
+      toolbar.style.left = sidebarWidth + 'px';
+    }
+    canvas.style.left = sidebarWidth + 'px';
+    canvas.style.top = (menuHeight + toolbarHeight) + 'px';
+
+    const width = (window.innerWidth - sidebarWidth)*canvasScale;
+    const height = (window.innerHeight - menuHeight - toolbarHeight)*canvasScale;
     canvas.width  = (width < minCanvasWidth) ? minCanvasWidth : width;
     canvas.height = (height < minCanvasHeight) ? minCanvasHeight : height;
     canvas.style.width = this.canvas.width/canvasScale + 'px';
@@ -4361,6 +4582,60 @@ class UIController {
     const position = {x:e.clientX - r.left, y:e.clientY - r.top};
     mousePosition = position;
     return position;
+  }
+
+  _optionPrompts(comp) {
+    const prompts = [];
+    if (comp.type === 'Text') {
+      prompts.push({key: 'text', message: 'Text:'});
+    }
+    if (comp.type === 'ValveFlow') {
+      prompts.push({key: 'conductance', message: 'Conductance (10-1000):'});
+    }
+    if (comp.type === 'PneumaticFilter') {
+      prompts.push({key: 'conductance', message: 'Conductance (50-' + conductanceBase + '):'});
+    }
+    if (comp.type === 'Compressor') {
+      prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
+    }
+    if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
+      prompts.push({key: 'pressure', message: 'Pressure setting (0.1 - ' + compressorPressure + ' bar):'});
+    }
+    if (['Valve32r', 'Roller'].includes(comp.type)) {
+      prompts.push({key: 'reference', message: 'Reference:'});
+    }
+    if (comp.type === 'AirTank') {
+      prompts.push({key: 'volume', message: 'Volume (20-10000 cm3):'});
+    }
+    if (comp.type === 'VisualIndicator') {
+      prompts.push({key: 'threshold', message: 'Air presence threshold (0.05 - ' + compressorPressure + ' bar):'});
+    }
+    if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
+      prompts.push({key: 'massLoad', message: 'Mass Load (kg):'});
+    }
+    return prompts;
+  }
+
+  _openOptions(comp) {
+    if (textPrompt.open) return false;
+    const prompts = this._optionPrompts(comp);
+    if (prompts.length === 0) return false;
+    componentEdit = comp;
+    textPromptAssignSequence(prompts);
+    return true;
+  }
+
+  _onDoubleClick(e) {
+    e.preventDefault();
+    const position = this._getMousePos(e);
+    for (const comp of this.engine.components) {
+      if (comp.nearRotated(position)) {
+        this._openOptions(comp);
+        break;
+      }
+    }
+    this.renderer.draw();
+    updateControlHighlights();
   }
 
   _onDown(e) {
@@ -4389,43 +4664,25 @@ class UIController {
     if (drawMode === 'Options') {
       for (const comp of this.engine.components) {
         if (comp.nearRotated(position)) {
-          const prompts = [];
-          if (comp.type === 'Text') {
-            prompts.push({key: 'text', message: 'Text:'});
-          }
-          if (comp.type === 'ValveFlow') {
-            prompts.push({key: 'conductance', message: 'Conductance (10-1000):'});
-          }
-          if (comp.type === 'PneumaticFilter') {
-            prompts.push({key: 'conductance', message: 'Conductance (50-' + conductanceBase + '):'});
-          }
-          if (comp.type === 'Compressor') {
-            prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
-          }
-          if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
-            prompts.push({key: 'pressure', message: 'Pressure setting (0.1 - ' + compressorPressure + ' bar):'});
-          }
-          if (['Valve32r', 'Roller'].includes(comp.type)) {
-            prompts.push({key: 'reference', message: 'Reference:'});
-          }
-          if (comp.type === 'AirTank') {
-            prompts.push({key: 'volume', message: 'Volume (20-10000 cm3):'});
-          }
-          if (comp.type === 'VisualIndicator') {
-            prompts.push({key: 'threshold', message: 'Air presence threshold (0.05 - ' + compressorPressure + ' bar):'});
-          }
-          if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
-            prompts.push({key: 'massLoad', message: 'Mass Load (kg):'});
-          }
-          if (comp.canRotate()) {
-            prompts.push({key: 'rotate', message: 'Rotate (0, 90, 180, 270):', value: comp.getRotation()});
-          }
-          componentEdit = comp;
-          textPromptAssignSequence(prompts);
+          this._openOptions(comp);
           break;
         }
       }
       this.renderer.draw();
+    }
+
+    // Rotate component mode
+    if (drawMode === 'Rotate') {
+      for (const comp of this.engine.components) {
+        if (comp.canRotate() && comp.nearRotated(position)) {
+          comp.options.rotate = comp.getRotation() + 90;
+          comp.validateRotationOption();
+          this.engine.createNodes();
+          break;
+        }
+      }
+      this.renderer.draw();
+      updateControlHighlights();
     }
 
     // Flip component mode
@@ -4973,13 +5230,17 @@ function reportErrors(files, jsons) {
 
 function simulationInit() {
   drawMode = null;
+  selectedComponentAction = null;
+  simulationMode = 'sInit';
   engine.createNodes();
   animationID = requestAnimationFrame(simulationRender);
   simulationActive = true;
+  updateControlHighlights();
 }
 
 function simulationStep() {
   drawMode = null;
+  selectedComponentAction = null;
   stepTime = 250;
 
   if (simulationActive !== true) {
@@ -4988,32 +5249,42 @@ function simulationStep() {
   if (animationID === null) {
     animationID = requestAnimationFrame(simulationRender);
   }
+  simulationMode = 'sStep';
+  updateControlHighlights();
 }
 
 function simulationStop() {
   drawMode = null;
+  selectedComponentAction = null;
+  simulationMode = 'sStop';
   simulationActive = false;
   if (animationID !== null) {
     cancelAnimationFrame(animationID);
     animationID = null;
   }
+  updateControlHighlights();
 }
 
 function simulationContinue() {
   drawMode = null;
+  selectedComponentAction = null;
+  simulationMode = 'sContinue';
   simulationActive = true;
   if (animationID === null) {
     animationID = requestAnimationFrame(simulationRender);
   }
+  updateControlHighlights();
 }
 
 function simulationReset() {
   simulationStop();
+  simulationMode = 'sReset';
   for (const comp of engine.components) {
     comp.reset();
   }
   engine.createNodes();
   renderer.draw();
+  updateControlHighlights();
 }
 
 
@@ -5105,6 +5376,7 @@ let last = performance.now();
 function firstSetupApp() {
   ui._resizeCanvas();
   navigatorLang();
+  updateControlHighlights();
 
   let config = query_read();
   for(let i = 0; i < config.length; i++) {
@@ -5145,13 +5417,7 @@ function textPromptAssign(key, message, afterClose=null, value=null) {
       const text = textInput.value.trim();
       if (text.length > 0) {
         componentEdit.options[key] = text;
-        if (key === 'rotate') {
-          componentEdit.validateRotationOption();
-          engine.createNodes();
-        }
-        else {
-          componentEdit.validateOptions();
-        }
+        componentEdit.validateOptions();
       }
       renderer.draw();
     }
