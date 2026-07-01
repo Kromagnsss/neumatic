@@ -1217,13 +1217,28 @@ class ComponentBase {
     }
   }
 
-  colorProcessPressure(pressure, bg = 0) {
+  colorProcessPressure(pressure, minPressure=0, maxPressure=processPressureMax, bg=0) {
+    if (arguments.length === 2) {
+      bg = minPressure;
+      minPressure = 0;
+      maxPressure = processPressureMax;
+    }
     pressure = Number(pressure);
     if (isNaN(pressure)) pressure = 0;
-    if (pressure > processPressureMax) pressure = processPressureMax;
-    if (pressure < 0) pressure = 0;
+    minPressure = Number(minPressure);
+    maxPressure = Number(maxPressure);
+    if (isNaN(minPressure)) minPressure = 0;
+    if (isNaN(maxPressure)) maxPressure = processPressureMax;
+    if (maxPressure < minPressure) {
+      const pressureSwap = minPressure;
+      minPressure = maxPressure;
+      maxPressure = pressureSwap;
+    }
+    if (maxPressure === minPressure) maxPressure = minPressure + 1;
+    if (pressure > maxPressure) pressure = maxPressure;
+    if (pressure < minPressure) pressure = minPressure;
 
-    const ratio = pressure / processPressureMax;
+    const ratio = (pressure - minPressure) / (maxPressure - minPressure);
     if (bg === 0) {
       const cr = 128 + Math.round(127 * Math.sqrt(ratio));
       return 'rgb(' + cr + ',0,0)';
@@ -1385,8 +1400,25 @@ class ProcessPipe extends Pipe {
     const [via1, via2] = this.vias();
     const node1 = engine.findNode(via1);
     const node2 = engine.findNode(via2);
+    this.syncProcessColorRange(node1, node2);
     this.computeFlow(node1, node2, this.conductance, dt);
-    this.color = this.colorProcessPressure(0.5*(node1.pressure + node2.pressure));
+    this.syncProcessColorRange(node1, node2);
+    this.color = this.colorProcessPressure(
+      0.5*(node1.pressure + node2.pressure),
+      node1.processPressureMin,
+      node1.processPressureMax
+    );
+  }
+
+  syncProcessColorRange(node1, node2) {
+    const minPressure = (node1.processPressureMin !== undefined) ? node1.processPressureMin : node2.processPressureMin;
+    const maxPressure = (node1.processPressureMax !== undefined) ? node1.processPressureMax : node2.processPressureMax;
+    if (minPressure !== undefined && maxPressure !== undefined) {
+      node1.processPressureMin = minPressure;
+      node1.processPressureMax = maxPressure;
+      node2.processPressureMin = minPressure;
+      node2.processPressureMax = maxPressure;
+    }
   }
 
   draw(ctx) {
@@ -2260,7 +2292,11 @@ class DifferentialPressureSwitch extends ComponentBase {
       this.computeFlow(node1, node2, this.conductance, dt);
     }
 
-    this.colorHP = this.colorProcessPressure(nodeHP.pressure);
+    this.colorHP = this.colorProcessPressure(
+      nodeHP.pressure,
+      nodeHP.processPressureMin,
+      nodeHP.processPressureMax
+    );
     this.color1 = this.colorPressure(node1.pressure);
     this.color2 = this.colorPressure(node2.pressure);
   }
@@ -2468,8 +2504,8 @@ class ProcessReservoir extends ComponentBase {
   reset() {
     this.phase = 0;
     this.currentPressure = this.options.pressureMin;
-    this.color = this.colorProcessPressure(this.currentPressure);
-    this.colorBody = this.colorProcessPressure(this.currentPressure, 1);
+    this.color = this.colorProcessPressure(this.currentPressure, this.options.pressureMin, this.options.pressureMax);
+    this.colorBody = this.colorProcessPressure(this.currentPressure, this.options.pressureMin, this.options.pressureMax, 1);
   }
 
   update(ctx, engine, dt) {
@@ -2485,10 +2521,12 @@ class ProcessReservoir extends ComponentBase {
       const node = engine.findNode(via);
       node.pressure = this.currentPressure;
       node.mass = node.pressure * node.volume;
+      node.processPressureMin = this.options.pressureMin;
+      node.processPressureMax = this.options.pressureMax;
     }
 
-    this.color = this.colorProcessPressure(this.currentPressure);
-    this.colorBody = this.colorProcessPressure(this.currentPressure, 1);
+    this.color = this.colorProcessPressure(this.currentPressure, this.options.pressureMin, this.options.pressureMax);
+    this.colorBody = this.colorProcessPressure(this.currentPressure, this.options.pressureMin, this.options.pressureMax, 1);
   }
 
   near(pos) {
