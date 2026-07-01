@@ -457,6 +457,10 @@
     <form method="dialog">
       <p id="messageInput">Text:</p>
       <input type="text" name="answer" id="textInput" placeholder="Text...">
+      <label id="checkboxInputRow" style="display:none; align-items:center; gap:8px;">
+        <input type="checkbox" id="checkboxInput">
+        <span id="checkboxText">Enabled</span>
+      </label>
       <div style="margin-top: 16px;">
         <button id="confirmBtn" value="default">Accept</button>
         <button id="cancelBtn" value="cancel" formnovalidate>Cancel</button>
@@ -1300,6 +1304,27 @@ class ComponentBase {
 
     node1.pressure = node1.mass / node1.volume;
     node2.pressure = node2.mass / node2.volume;
+  }
+
+  ventNodeToAtmosphere(node, conductance, dt) {
+    if (node.pressure <= airPressure) {
+      node.pressure = airPressure;
+      node.mass = node.pressure * node.volume;
+      return;
+    }
+
+    const atmosphereVolume = 100000;
+    const atmosphere = {
+      volume: atmosphereVolume,
+      pressure: airPressure,
+      mass: airPressure * atmosphereVolume,
+    };
+
+    this.computeFlow(node, atmosphere, conductance, dt);
+    if (node.pressure < airPressure) {
+      node.pressure = airPressure;
+      node.mass = node.pressure * node.volume;
+    }
   }
 
   serialize() {
@@ -2462,6 +2487,8 @@ class DifferentialPressureSwitch extends ComponentBase {
     this.color2 = defaultColor;
     this.options = {
       pressure: 100,
+      inverse: false,
+      exhaustConductance: conductanceBase,
     };
   }
 
@@ -2473,6 +2500,16 @@ class DifferentialPressureSwitch extends ComponentBase {
       this.options.pressure = processPressureMax;
     if (this.options.pressure < 0.1)
       this.options.pressure = 0.1;
+
+    this.options.inverse = (this.options.inverse === true || this.options.inverse === 'true');
+
+    this.options.exhaustConductance = Number(this.options.exhaustConductance);
+    if (isNaN(this.options.exhaustConductance))
+      this.options.exhaustConductance = conductanceBase;
+    if (this.options.exhaustConductance > conductanceBase)
+      this.options.exhaustConductance = conductanceBase;
+    if (this.options.exhaustConductance < 10)
+      this.options.exhaustConductance = 10;
   }
 
   vias() {
@@ -2495,10 +2532,16 @@ class DifferentialPressureSwitch extends ComponentBase {
     const node1 = engine.findNode(via1);
     const node2 = engine.findNode(via2);
     const targetPressure = this.options.pressure;
+    const detected = nodeHP.pressure > targetPressure;
 
-    this.active = nodeHP.pressure > targetPressure;
-    if (this.active && node1.pressure > node2.pressure + 0.02) {
-      this.computeFlow(node1, node2, this.conductance, dt);
+    this.active = this.options.inverse ? !detected : detected;
+    if (this.active) {
+      if (node1.pressure > node2.pressure + 0.02) {
+        this.computeFlow(node1, node2, this.conductance, dt);
+      }
+    }
+    else {
+      this.ventNodeToAtmosphere(node2, this.options.exhaustConductance, dt);
     }
 
     this.colorHP = this.colorProcessPressure(
@@ -2559,6 +2602,10 @@ class DifferentialPressureSwitch extends ComponentBase {
       ctx.beginPath();
       ctx.moveTo(this.x+20, this.y);
       ctx.lineTo(this.x+32, this.y);
+      ctx.moveTo(this.x+20, this.y);
+      ctx.lineTo(this.x+20, this.y+16);
+      ctx.moveTo(this.x+15, this.y+16);
+      ctx.lineTo(this.x+25, this.y+16);
       ctx.stroke();
     }
 
@@ -2574,6 +2621,9 @@ class DifferentialPressureSwitch extends ComponentBase {
     ctx.fillText('1', this.x-50, this.y+18);
     ctx.fillText('2', this.x+50, this.y+18);
     ctx.fillText(this.options.pressure + ' bar', this.x, this.y+18);
+    if (this.options.inverse) {
+      ctx.fillText('INV', this.x, this.y-6);
+    }
     ctx.textAlign = 'start';
   }
 }
@@ -5163,6 +5213,8 @@ class UIController {
     }
     if (comp.type === 'DifferentialPressureSwitch') {
       prompts.push({key: 'pressure', message: 'HP pressure setting (0.1 - ' + processPressureMax + ' bar):'});
+      prompts.push({key: 'inverse', message: 'Inverse operation:', type: 'checkbox'});
+      prompts.push({key: 'exhaustConductance', message: 'Exhaust conductance (10-' + conductanceBase + '):'});
     }
     if (comp.type === 'ProcessReservoir') {
       prompts.push({key: 'pressureMin', message: 'Process pressure min (0 - ' + processPressureMax + ' bar):'});
@@ -5946,6 +5998,9 @@ function navigatorLang() {
 const aboutWindowClose = document.getElementById('aboutCloseBtn');
 const textPrompt = document.getElementById('textPrompt');
 const textInput = document.getElementById('textInput');
+const checkboxInputRow = document.getElementById('checkboxInputRow');
+const checkboxInput = document.getElementById('checkboxInput');
+const checkboxText = document.getElementById('checkboxText');
 const messageInput = document.getElementById('messageInput');
 
 const engine = new Engine();
@@ -5985,20 +6040,26 @@ function textPromptAssignSequence(prompts) {
     return;
   }
   const [prompt, ...nextPrompts] = prompts;
-  textPromptAssign(prompt.key, prompt.message, () => textPromptAssignSequence(nextPrompts), prompt.value);
+  textPromptAssign(prompt.key, prompt.message, () => textPromptAssignSequence(nextPrompts), prompt.value, prompt.type);
 }
 
 
-function textPromptAssign(key, message, afterClose=null, value=null) {
+function textPromptAssign(key, message, afterClose=null, value=null, type='text') {
   const content = (value !== null) ? value : componentEdit.options[key];
-  textPromptDialog(content, message);
+  textPromptDialog(content, message, type);
 
   textPrompt.addEventListener('close', () => {
     if (textPrompt.returnValue !== 'cancel' && componentEdit) {
-      const text = textInput.value.trim();
-      if (text.length > 0) {
-        componentEdit.options[key] = text;
+      if (type === 'checkbox') {
+        componentEdit.options[key] = checkboxInput.checked;
         componentEdit.validateOptions();
+      }
+      else {
+        const text = textInput.value.trim();
+        if (text.length > 0) {
+          componentEdit.options[key] = text;
+          componentEdit.validateOptions();
+        }
       }
       renderer.draw();
     }
@@ -6012,9 +6073,17 @@ function textPromptAssign(key, message, afterClose=null, value=null) {
 }
 
 
-function textPromptDialog(content='Text', message='Value:') {
-  textInput.value = content;
+function textPromptDialog(content='Text', message='Value:', type='text') {
   messageInput.innerText = message;
+  textInput.style.display = (type === 'checkbox') ? 'none' : '';
+  checkboxInputRow.style.display = (type === 'checkbox') ? 'flex' : 'none';
+  if (type === 'checkbox') {
+    checkboxInput.checked = (content === true || content === 'true');
+    checkboxText.innerText = 'Enabled';
+  }
+  else {
+    textInput.value = content;
+  }
   textPrompt.showModal();
 }
 
