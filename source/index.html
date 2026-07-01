@@ -391,6 +391,7 @@
         <button class="tool-button component-tool" data-action="cFilter"><span class="tool-symbol">F</span><span class="tool-label" data-i18n="cFilter">Filter</span></button>
         <button class="tool-button component-tool" data-action="cTestPort"><span class="tool-symbol round">T</span><span class="tool-label" data-i18n="cTestPort">Test port</span></button>
         <button class="tool-button component-tool" data-action="cVisualIndicator"><span class="tool-symbol round">●</span><span class="tool-label" data-i18n="cVisualIndicator">Visual indicator</span></button>
+        <button class="tool-button component-tool" data-action="cDifferentialPressureSwitch"><span class="tool-symbol">DPS</span><span class="tool-label" data-i18n="cDifferentialPressureSwitch">Differential pressure switch</span></button>
         <button class="tool-button component-tool" data-action="cAirTank"><span class="tool-symbol">▭</span><span class="tool-label" data-i18n="cAirTank">Air tank</span></button>
         <button class="tool-button component-tool" data-action="cValveOr"><span class="tool-symbol">OR</span><span class="tool-label" data-i18n="cValveOr">OR valve</span></button>
         <button class="tool-button component-tool" data-action="cValveAnd"><span class="tool-symbol">AND</span><span class="tool-label" data-i18n="cValveAnd">AND valve</span></button>
@@ -599,6 +600,7 @@ const translations = {
     cFilter: 'Filter',
     cTestPort: 'Test port',
     cVisualIndicator: 'Visual indicator',
+    cDifferentialPressureSwitch: 'Differential pressure switch',
     cAirTank: 'Air tank',
     cValveOr: 'OR valve',
     cValveAnd: 'AND valve',
@@ -669,6 +671,7 @@ const translations = {
     cFilter: 'Filtro',
     cTestPort: 'Puerto de prueba',
     cVisualIndicator: 'Indicador visual',
+    cDifferentialPressureSwitch: 'Presostato diferencial',
     cAirTank: 'Depósito de aire',
     cValveOr: 'Válvula selectora (OR)',
     cValveAnd: 'Válvula simultaneidad (AND)',
@@ -769,6 +772,7 @@ document.addEventListener("click", (e) => {
     cFilter: () => { simulationStop(); drawMode='component'; componentType='PneumaticFilter'; },
     cTestPort: () => { simulationStop(); drawMode='component'; componentType='TestPort'; },
     cVisualIndicator: () => { simulationStop(); drawMode='component'; componentType='VisualIndicator'; },
+    cDifferentialPressureSwitch: () => { simulationStop(); drawMode='component'; componentType='DifferentialPressureSwitch'; },
     cAirTank: () => { simulationStop(); drawMode='component'; componentType='AirTank'; },
     cCylinder1: () => { simulationStop(); drawMode='component'; componentType='Cylinder1'; },
     cCylinder1Out: () => { simulationStop(); drawMode='component'; componentType='Cylinder1Out'; },
@@ -2127,6 +2131,130 @@ class VisualIndicator extends TestPort {
       ctx.lineTo(this.x, this.y-20);
       ctx.stroke();
     }
+  }
+}
+
+
+class DifferentialPressureSwitch extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'DifferentialPressureSwitch';
+    this.conductance = conductanceBase;
+    this.active = false;
+    this.colorHP = defaultColor;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+    this.options = {
+      pressure: 3,
+    };
+  }
+
+  validateOptions() {
+    this.options.pressure = Number(this.options.pressure);
+    if (isNaN(this.options.pressure))
+      this.options.pressure = 3;
+    if (this.options.pressure > compressorPressure)
+      this.options.pressure = compressorPressure;
+    if (this.options.pressure < 0.1)
+      this.options.pressure = 0.1;
+  }
+
+  vias() {
+    const viaHP = {x:this.x, y:this.y-60};
+    const via1 = {x:this.x-50, y:this.y};
+    const via2 = {x:this.x+50, y:this.y};
+    return this.rotateVias([viaHP, via1, via2]);
+  }
+
+  reset() {
+    this.active = false;
+    this.colorHP = defaultColor;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [viaHP, via1, via2] = this.vias();
+    const nodeHP = engine.findNode(viaHP);
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    const targetPressure = airPressure + this.options.pressure;
+
+    this.active = nodeHP.pressure > targetPressure;
+    if (this.active && node1.pressure > node2.pressure + 0.02) {
+      this.computeFlow(node1, node2, this.conductance, dt);
+    }
+
+    this.colorHP = this.colorPressure(nodeHP.pressure);
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color2 = this.colorPressure(node2.pressure);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-62, this.y-70, this.x+62, this.y+30, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y-60, 0, 18, this.colorHP);
+    this.drawPort(ctx, this.x-50, this.y, 18, 0, this.color1);
+    this.drawPort(ctx, this.x+50, this.y, -18, 0, this.color2);
+
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = '#fff';
+
+    this.drawRectangle(ctx, this.x-32, this.y-25, this.x+32, this.y+25);
+
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-42);
+    ctx.lineTo(this.x, this.y-25);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(this.x-20, this.y-25);
+    ctx.lineTo(this.x-20, this.y-34);
+    ctx.arc(this.x, this.y-34, 20, Math.PI, 0);
+    ctx.lineTo(this.x+20, this.y-25);
+    ctx.stroke();
+
+    ctx.strokeStyle = this.active ? this.color1 : color;
+    ctx.beginPath();
+    if (this.active) {
+      ctx.moveTo(this.x-32, this.y);
+      ctx.lineTo(this.x+32, this.y);
+      ctx.stroke();
+      this.drawArrow(ctx, this.x-24, this.y, this.x+24, this.y, this.color1);
+    }
+    else {
+      ctx.moveTo(this.x-20, this.y-16);
+      ctx.lineTo(this.x+20, this.y+16);
+      ctx.stroke();
+      ctx.strokeStyle = this.color1;
+      ctx.beginPath();
+      ctx.moveTo(this.x-32, this.y);
+      ctx.lineTo(this.x-20, this.y);
+      ctx.stroke();
+      ctx.strokeStyle = this.color2;
+      ctx.beginPath();
+      ctx.moveTo(this.x+20, this.y);
+      ctx.lineTo(this.x+32, this.y);
+      ctx.stroke();
+    }
+
+    this.drawPressureSwitchLabel(ctx);
+  }
+
+  drawPressureSwitchLabel(ctx) {
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.font = textFont;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.fillText('HP', this.x, this.y-48);
+    ctx.fillText('1', this.x-50, this.y+18);
+    ctx.fillText('2', this.x+50, this.y+18);
+    ctx.fillText('P>', this.x, this.y+18);
+    ctx.textAlign = 'start';
   }
 }
 
@@ -4598,7 +4726,7 @@ class UIController {
     if (comp.type === 'Compressor') {
       prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
     }
-    if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
+    if (['PressureReducer', 'BackPressureRegulator', 'DifferentialPressureSwitch'].includes(comp.type)) {
       prompts.push({key: 'pressure', message: 'Pressure setting (0.1 - ' + compressorPressure + ' bar):'});
     }
     if (['Valve32r', 'Roller'].includes(comp.type)) {
@@ -4744,6 +4872,7 @@ class UIController {
       if (componentType === 'PneumaticFilter') comp = new PneumaticFilter(position);
       if (componentType === 'TestPort') comp = new TestPort(position);
       if (componentType === 'VisualIndicator') comp = new VisualIndicator(position);
+      if (componentType === 'DifferentialPressureSwitch') comp = new DifferentialPressureSwitch(position);
       if (componentType === 'AirTank') comp = new AirTank(position);
       if (componentType === 'ValveOr') comp = new ValveOr(position);
       if (componentType === 'ValveAnd') comp = new ValveAnd(position);
@@ -4955,6 +5084,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'PneumaticFilter') newcomp = new PneumaticFilter({x:comp.x, y:comp.y});
     if (comp.type === 'TestPort') newcomp = new TestPort({x:comp.x, y:comp.y});
     if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
+    if (comp.type === 'DifferentialPressureSwitch') newcomp = new DifferentialPressureSwitch({x:comp.x, y:comp.y});
     if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
     if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
     if (comp.type === 'ValveAnd')   newcomp = new ValveAnd({x:comp.x, y:comp.y});
