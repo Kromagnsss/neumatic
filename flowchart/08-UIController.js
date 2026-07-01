@@ -145,6 +145,7 @@ class UIController {
       if (componentType === 'Escape') comp = new Escape(position);
       if (componentType === 'Text') comp = new Text(position);
       if (componentType === 'Cylinder1') comp = new Cylinder1(position);
+      if (componentType === 'Cylinder1Out') comp = new Cylinder1Out(position);
       if (componentType === 'Cylinder2') comp = new Cylinder2(position);
       if (componentType === 'Valve22m') comp = new Valve22m(position);
       if (componentType === 'Valve32b') comp = new Valve32b(position);
@@ -158,6 +159,12 @@ class UIController {
       if (componentType === 'Valve52p') comp = new Valve52p(position);
       if (componentType === 'ValveNret') comp = new ValveNret(position);
       if (componentType === 'ValveFlow') comp = new ValveFlow(position);
+      if (componentType === 'PressureReducer') comp = new PressureReducer(position);
+      if (componentType === 'BackPressureRegulator') comp = new BackPressureRegulator(position);
+      if (componentType === 'PneumaticFilter') comp = new PneumaticFilter(position);
+      if (componentType === 'TestPort') comp = new TestPort(position);
+      if (componentType === 'VisualIndicator') comp = new VisualIndicator(position);
+      if (componentType === 'AirTank') comp = new AirTank(position);
       if (componentType === 'ValveOr') comp = new ValveOr(position);
       if (componentType === 'ValveAnd') comp = new ValveAnd(position);
 

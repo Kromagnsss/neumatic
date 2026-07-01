@@ -211,6 +211,12 @@
               <li><a href="#" data-action="cValveNret" data-i18n="cValveNret">Non-return valve</a></li>
               <li><a href="#" data-action="cValveFlow" data-i18n="cValveFlow">Choke valve</a></li>
               <li><a href="#" data-action="cValveIsol" data-i18n="cValveIsol">Isolation valve</a></li>
+              <li><a href="#" data-action="cPressureReducer" data-i18n="cPressureReducer">Pressure reducer</a></li>
+              <li><a href="#" data-action="cBackPressureRegulator" data-i18n="cBackPressureRegulator">Back-pressure regulator</a></li>
+              <li><a href="#" data-action="cFilter" data-i18n="cFilter">Filter</a></li>
+              <li><a href="#" data-action="cTestPort" data-i18n="cTestPort">Test port</a></li>
+              <li><a href="#" data-action="cVisualIndicator" data-i18n="cVisualIndicator">Visual indicator</a></li>
+              <li><a href="#" data-action="cAirTank" data-i18n="cAirTank">Air tank</a></li>
               <li><a href="#" data-action="cValveOr"   data-i18n="cValveOr">Or valve</a></li>
               <li><a href="#" data-action="cValveAnd"  data-i18n="cValveAnd">And valve</a></li>
             </ul>
@@ -220,6 +226,7 @@
             <a href="#" data-i18n="cylinderMenu">Cylinder</a>
             <ul class="submenu">
               <li><a href="#" data-action="cCylinder1" data-i18n="cCylinder1">Single-acting</a></li>
+              <li><a href="#" data-action="cCylinder1Out" data-i18n="cCylinder1Out">Single-acting rod out</a></li>
               <li><a href="#" data-action="cCylinder2" data-i18n="cCylinder2">Double-acting</a></li>
             </ul>
           </li>
@@ -446,10 +453,17 @@ const translations = {
     cValveNret: 'Non-return valve',
     cValveFlow: 'Choke valve',
     cValveIsol: 'Isolation valve',
+    cPressureReducer: 'Pressure reducer',
+    cBackPressureRegulator: 'Back-pressure regulator',
+    cFilter: 'Filter',
+    cTestPort: 'Test port',
+    cVisualIndicator: 'Visual indicator',
+    cAirTank: 'Air tank',
     cValveOr: 'OR valve',
     cValveAnd: 'AND valve',
     cylinderMenu: 'Cylinders',
     cCylinder1: 'Single-acting',
+    cCylinder1Out: 'Single-acting rod out',
     cCylinder2: 'Double-acting',
     cPress: 'Compressor',
     cManometer: 'Manometer',
@@ -506,10 +520,17 @@ const translations = {
     cValveNret: 'Válvula antirretorno',
     cValveFlow: 'Válvula estranguladora',
     cValveIsol: 'Válvula de aislamiento',
+    cPressureReducer: 'Reductora de presión',
+    cBackPressureRegulator: 'Reguladora de contrapresión',
+    cFilter: 'Filtro',
+    cTestPort: 'Puerto de prueba',
+    cVisualIndicator: 'Indicador visual',
+    cAirTank: 'Depósito de aire',
     cValveOr: 'Válvula selectora (OR)',
     cValveAnd: 'Válvula simultaneidad (AND)',
     cylinderMenu: 'Cilindros',
     cCylinder1: 'Simple efecto',
+    cCylinder1Out: 'Simple efecto vástago fuera',
     cCylinder2: 'Doble efecto',
     cPress: 'Compresor',
     cManometer: 'Manómetro',
@@ -597,7 +618,14 @@ document.addEventListener("click", (e) => {
     cValveNret: () => { simulationStop(); drawMode='component'; componentType='ValveNret'; },
     cValveFlow: () => { simulationStop(); drawMode='component'; componentType='ValveFlow'; },
     cValveIsol: () => { simulationStop(); drawMode='component'; componentType='ValveIsol'; },
+    cPressureReducer: () => { simulationStop(); drawMode='component'; componentType='PressureReducer'; },
+    cBackPressureRegulator: () => { simulationStop(); drawMode='component'; componentType='BackPressureRegulator'; },
+    cFilter: () => { simulationStop(); drawMode='component'; componentType='PneumaticFilter'; },
+    cTestPort: () => { simulationStop(); drawMode='component'; componentType='TestPort'; },
+    cVisualIndicator: () => { simulationStop(); drawMode='component'; componentType='VisualIndicator'; },
+    cAirTank: () => { simulationStop(); drawMode='component'; componentType='AirTank'; },
     cCylinder1: () => { simulationStop(); drawMode='component'; componentType='Cylinder1'; },
+    cCylinder1Out: () => { simulationStop(); drawMode='component'; componentType='Cylinder1Out'; },
     cCylinder2: () => { simulationStop(); drawMode='component'; componentType='Cylinder2'; },
 
     eDelete: () => { simulationStop(); drawMode='Delete'; },
@@ -1554,6 +1582,449 @@ class ValveIsol extends ComponentBase {
 }
 
 
+class PressureReducer extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'PressureReducer';
+    this.conductance = conductanceBase;
+    this.active = false;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+    this.options = {
+      pressure: 3,
+    };
+  }
+
+  validateOptions() {
+    this.options.pressure = Number(this.options.pressure);
+    if (isNaN(this.options.pressure))
+      this.options.pressure = 3;
+    if (this.options.pressure > compressorPressure)
+      this.options.pressure = compressorPressure;
+    if (this.options.pressure < 0.1)
+      this.options.pressure = 0.1;
+  }
+
+  vias() {
+    const via1 = {x:this.x-60, y:this.y};
+    const via2 = {x:this.x+60, y:this.y};
+    return this.rotateVias([via1, via2]);
+  }
+
+  reset() {
+    this.active = false;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    const targetPressure = airPressure + this.options.pressure;
+
+    this.active = false;
+    if (node1.pressure > node2.pressure + 0.02 && node2.pressure < targetPressure - 0.02) {
+      this.computeFlow(node1, node2, this.conductance, dt);
+      if (node2.pressure > targetPressure) {
+        const extraMass = node2.mass - targetPressure * node2.volume;
+        if (extraMass > 0) {
+          node2.mass -= extraMass;
+          node1.mass += extraMass;
+          node2.pressure = node2.mass / node2.volume;
+          node1.pressure = node1.mass / node1.volume;
+        }
+      }
+      this.active = true;
+    }
+
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color2 = this.colorPressure(node2.pressure);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-65, this.y-68, this.x+65, this.y+40, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color1);
+    this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color2);
+    this.drawRegulatorBody(ctx, 'RED', true);
+  }
+
+  drawRegulatorBody(ctx, label, downstreamPilot) {
+    const color = (this.selected) ? selectedColor : defaultColor;
+    const senseX = downstreamPilot ? this.x+34 : this.x-34;
+    const gaugeX = downstreamPilot ? this.x+48 : this.x-48;
+    const senseColor = (this.selected) ? selectedColor : (downstreamPilot ? this.color2 : this.color1);
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = '#fff';
+
+    ctx.beginPath();
+    ctx.moveTo(this.x-40, this.y);
+    ctx.lineTo(this.x-18, this.y);
+    ctx.moveTo(this.x+18, this.y);
+    ctx.lineTo(this.x+40, this.y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(this.x-18, this.y-16);
+    ctx.lineTo(this.x, this.y);
+    ctx.lineTo(this.x-18, this.y+16);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(this.x+18, this.y-16);
+    ctx.lineTo(this.x, this.y);
+    ctx.lineTo(this.x+18, this.y+16);
+    ctx.closePath();
+    ctx.stroke();
+
+    this.drawRectangle(ctx, this.x-18, this.y-16, this.x+18, this.y+16);
+    this.drawSpring(ctx, this.x-10, this.y+20);
+
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-16);
+    ctx.lineTo(this.x, this.y-34);
+    ctx.lineTo(this.x-18, this.y-34);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(this.x-18, this.y-34);
+    ctx.lineTo(this.x-18, this.y-44);
+    ctx.arc(this.x, this.y-44, 18, Math.PI, 0);
+    ctx.lineTo(this.x+18, this.y-34);
+    ctx.lineTo(this.x+18, this.y-34);
+    ctx.stroke();
+
+    ctx.strokeStyle = senseColor;
+    ctx.beginPath();
+    ctx.moveTo(senseX, this.y);
+    ctx.lineTo(senseX, this.y-24);
+    ctx.lineTo(this.x, this.y-24);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(gaugeX, this.y);
+    ctx.lineTo(gaugeX, this.y-32);
+    ctx.stroke();
+    this.drawRegulatorGauge(ctx, gaugeX, this.y-48, senseColor);
+    this.drawRegulatorLabel(ctx, label);
+  }
+
+  drawRegulatorGauge(ctx, x, y, color) {
+    if (this.selected) color = selectedColor;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    this.drawArrow(ctx, x-5, y+5, x+6, y-6, color);
+  }
+
+  drawRegulatorLabel(ctx, text) {
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.font = textFont;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, this.x, this.y+36);
+    ctx.textAlign = 'start';
+  }
+}
+
+
+class BackPressureRegulator extends PressureReducer {
+  constructor(pos) {
+    super(pos);
+    this.type = 'BackPressureRegulator';
+    this.options.pressure = 3;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    const targetPressure = airPressure + this.options.pressure;
+
+    this.active = false;
+    if (node1.pressure > targetPressure + 0.02 && node1.pressure > node2.pressure + 0.02) {
+      this.computeFlow(node1, node2, this.conductance, dt);
+      if (node1.pressure < targetPressure) {
+        const missingMass = targetPressure * node1.volume - node1.mass;
+        if (missingMass > 0) {
+          const returnedMass = Math.min(missingMass, node2.mass);
+          node2.mass -= returnedMass;
+          node1.mass += returnedMass;
+          node2.pressure = node2.mass / node2.volume;
+          node1.pressure = node1.mass / node1.volume;
+        }
+      }
+      this.active = true;
+    }
+
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color2 = this.colorPressure(node2.pressure);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color1);
+    this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color2);
+    this.drawRegulatorBody(ctx, 'BPR', false);
+  }
+}
+
+
+class PneumaticFilter extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'PneumaticFilter';
+    this.color = defaultColor;
+    this.options = {
+      conductance: 1200,
+    };
+  }
+
+  validateOptions() {
+    this.options.conductance = Number(this.options.conductance);
+    if (isNaN(this.options.conductance))
+      this.options.conductance = 1200;
+    if (this.options.conductance > conductanceBase)
+      this.options.conductance = conductanceBase;
+    if (this.options.conductance < 50)
+      this.options.conductance = 50;
+  }
+
+  vias() {
+    const via1 = {x:this.x, y:this.y};
+    const via2 = {x:this.x, y:this.y-50};
+    return this.rotateVias([via1, via2]);
+  }
+
+  reset() {
+    this.color = defaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    this.computeFlow(node1, node2, this.options.conductance, dt);
+    this.color = this.colorPressure(0.5*(node1.pressure + node2.pressure));
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-15, this.y-42, this.x+15, this.y-8, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y, 0, -8, this.color);
+    this.drawPort(ctx, this.x, this.y-50, 0, 8, this.color);
+
+    const color = (this.selected) ? selectedColor : defaultColor;
+    this.drawRectangle(ctx, this.x-15, this.y-40, this.x+15, this.y-10);
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.x-14, this.y-12);
+    ctx.lineTo(this.x+14, this.y-38);
+    ctx.moveTo(this.x, this.y-10);
+    ctx.lineTo(this.x, this.y-3);
+    ctx.moveTo(this.x-5, this.y-3);
+    ctx.lineTo(this.x+5, this.y-3);
+    ctx.stroke();
+  }
+}
+
+
+class TestPort extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'TestPort';
+    this.pressure = airPressure;
+    this.color = defaultColor;
+  }
+
+  vias() {
+    const via1 = {x:this.x, y:this.y};
+    return this.rotateVias([via1]);
+  }
+
+  reset() {
+    this.color = defaultColor;
+    this.pressure = airPressure;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1] = this.vias();
+    const node = engine.findNode(via1);
+    this.pressure = node.pressure;
+    this.color = this.colorPressure(node.pressure);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-12, this.y-35, this.x+12, this.y-5, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y, 0, -10, this.color);
+    ctx.strokeStyle = (this.selected) ? selectedColor : this.color;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-10);
+    ctx.lineTo(this.x, this.y-20);
+    ctx.arc(this.x, this.y-26, 6, 0, Math.PI*2);
+    ctx.moveTo(this.x-8, this.y-34);
+    ctx.lineTo(this.x+8, this.y-34);
+    ctx.stroke();
+  }
+}
+
+
+class VisualIndicator extends TestPort {
+  constructor(pos) {
+    super(pos);
+    this.type = 'VisualIndicator';
+    this.active = false;
+    this.options = {
+      threshold: 0.3,
+    };
+  }
+
+  validateOptions() {
+    this.options.threshold = Number(this.options.threshold);
+    if (isNaN(this.options.threshold))
+      this.options.threshold = 0.3;
+    if (this.options.threshold > compressorPressure)
+      this.options.threshold = compressorPressure;
+    if (this.options.threshold < 0.05)
+      this.options.threshold = 0.05;
+  }
+
+  update(ctx, engine, dt) {
+    const [via1] = this.vias();
+    const node = engine.findNode(via1);
+    this.pressure = node.pressure;
+    this.active = node.pressure > airPressure + this.options.threshold;
+    this.color = this.colorPressure(node.pressure);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-14, this.y-42, this.x+14, this.y-5, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y, 0, -10, this.color);
+
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = this.active ? this.color : '#fff';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y-27, 12, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    if (this.active) {
+      ctx.strokeStyle = this.color;
+      ctx.beginPath();
+      ctx.moveTo(this.x-7, this.y-27);
+      ctx.lineTo(this.x+7, this.y-27);
+      ctx.moveTo(this.x, this.y-34);
+      ctx.lineTo(this.x, this.y-20);
+      ctx.stroke();
+    }
+  }
+}
+
+
+class AirTank extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'AirTank';
+    this.conductance = conductanceBase;
+    this.pressure = airPressure;
+    this.volume = 500;
+    this.mass = this.pressure * this.volume;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+    this.colorTank = '#fff';
+    this.options = {
+      volume: 500,
+    };
+  }
+
+  validateOptions() {
+    const previousPressure = this.pressure || airPressure;
+    this.options.volume = Number(this.options.volume);
+    if (isNaN(this.options.volume))
+      this.options.volume = 500;
+    if (this.options.volume > 10000)
+      this.options.volume = 10000;
+    if (this.options.volume < 20)
+      this.options.volume = 20;
+    this.volume = this.options.volume;
+    this.mass = previousPressure * this.volume;
+  }
+
+  vias() {
+    const via1 = {x:this.x-50, y:this.y};
+    const via2 = {x:this.x+50, y:this.y};
+    return this.rotateVias([via1, via2]);
+  }
+
+  reset() {
+    this.pressure = airPressure;
+    this.mass = this.pressure * this.volume;
+    this.color1 = defaultColor;
+    this.color2 = defaultColor;
+    this.colorTank = '#fff';
+  }
+
+  update(ctx, engine, dt) {
+    const [via1, via2] = this.vias();
+    const node1 = engine.findNode(via1);
+    const node2 = engine.findNode(via2);
+    const tank = {
+      volume: this.volume,
+      mass: this.mass,
+      pressure: this.pressure,
+    };
+
+    this.computeFlow(node1, tank, this.conductance, dt);
+    this.computeFlow(node2, tank, this.conductance, dt);
+
+    this.mass = tank.mass;
+    this.pressure = tank.pressure;
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color2 = this.colorPressure(node2.pressure);
+    this.colorTank = this.colorPressure(this.pressure, 1);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-35, this.y-20, this.x+35, this.y+20, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x-50, this.y, 20, 0, this.color1);
+    this.drawPort(ctx, this.x+50, this.y, -20, 0, this.color2);
+
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = this.colorTank;
+    ctx.beginPath();
+    ctx.moveTo(this.x-20, this.y-20);
+    ctx.lineTo(this.x+20, this.y-20);
+    ctx.arc(this.x+20, this.y, 20, -Math.PI*0.5, Math.PI*0.5);
+    ctx.lineTo(this.x-20, this.y+20);
+    ctx.arc(this.x-20, this.y, 20, Math.PI*0.5, Math.PI*1.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+
 class ValveOr extends ComponentBase {
   constructor(pos) {
     super(pos);
@@ -2002,6 +2473,140 @@ class Cylinder1 extends ComponentBase {
     ctx.stroke();
 
     ctx.lineJoin = 'miter';
+  }
+}
+
+
+class Cylinder1Out extends Cylinder1 {
+  constructor(pos) {
+    super(pos);
+    this.type = 'Cylinder1Out';
+    this.position.actual = this.position.max;
+    this.shift = this.maxShift;
+  }
+
+  vias() {
+    const via1 = {x:this.x+110, y:this.y};
+    return this.rotateVias([via1]);
+  }
+
+  reset () {
+    this.position.actual = this.position.max;
+    this.pressure1 = airPressure;
+    this.mass1 = 0;
+    this.speed = 0;
+    this.shift = this.maxShift;
+    this.color1 = defaultColor;
+    this.color1w = '#fff';
+  }
+
+  update(ctx, engine, dt) {
+    const [via1] = this.vias();
+    const node1 = engine.findNode(via1);
+
+    let volume1 = 100*(this.position.max - this.position.actual) * this.area + this.volumeMin;
+    if (this.mass1 === 0) this.mass1 = this.pressure1 * volume1;
+
+    const m1 = node1.mass;
+    const m2 = this.mass1;
+    const n1_vol = node1.volume;
+
+    let dp = m1 / n1_vol - m2 / volume1;
+    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
+    const k1_m = dt * dp * this.conductance;
+
+    dp = (m1 - 0.5*k1_m) / n1_vol - (m2 + 0.5*k1_m) / volume1;
+    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
+    const k2_m = dt * dp * this.conductance;
+
+    dp = (m1 - 0.5*k2_m) / n1_vol - (m2 + 0.5*k2_m) / volume1;
+    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
+    const k3_m = dt * dp * this.conductance;
+
+    dp = (m1 - k3_m) / n1_vol - (m2 + k3_m) / volume1;
+    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
+    const k4_m = dt * dp * this.conductance;
+
+    const dm = (k1_m + 2*k2_m + 2*k3_m + k4_m)/6;
+
+    node1.mass -= dm;
+    this.mass1 += dm;
+
+    node1.pressure = node1.mass / n1_vol;
+    this.pressure1 = this.mass1 / volume1;
+
+    for(let i = 0; i < 10; i++) {
+      volume1 = 100*(this.position.max - this.position.actual) * this.area + this.volumeMin;
+      this.pressure1 = this.mass1 / volume1;
+      const forcePiston = (this.pressure1 - airPressure) * this.area;
+      const springCompression = this.position.max - this.position.actual;
+      const forceSpring = this.springForceMin + springCompression * this.springForceConst;
+      let netForce = forceSpring - forcePiston;
+
+      if (this.speed === 0) {
+        if (netForce > 0) {
+          if (netForce > this.frictionStatic)
+            netForce -= this.frictionDynamic;
+          else
+            netForce = 0;
+          this.speed = 0.1 * dt * netForce * 9.8 / (this.massRod + this.options.massLoad);
+        }
+        else {
+          this.speed = 0.1 * dt * netForce * 9.8 / this.massRod;
+        }
+      }
+      else if (this.speed > 0) {
+        netForce -= this.frictionDynamic * Math.sign(this.speed);
+        const dspeed = 0.1 * dt * netForce * 9.8 / (this.massRod + this.options.massLoad);
+        if (Math.sign(dspeed) === Math.sign(this.speed) &&
+          Math.abs(dspeed) > Math.abs(this.speed)) {
+          this.speed = 0;
+        }
+        else {
+          this.speed += dspeed;
+        }
+      }
+      else {
+        this.speed += 0.1 * dt * netForce * 9.8 / this.massRod;
+      }
+
+      this.position.actual += 0.1 * dt * this.speed;
+    }
+
+    if (this.position.actual < this.position.min) {
+      this.position.actual = this.position.min;
+      this.speed = 0;
+    }
+    if (this.position.actual > this.position.max) {
+      this.position.actual = this.position.max;
+      this.speed = 0;
+    }
+    this.shift = this.maxShift * (this.position.actual-this.position.min)/
+                 (this.position.max - this.position.min);
+
+    this.color1 = this.colorPressure(node1.pressure);
+    this.color1w = this.colorPressure(node1.pressure, 1);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x+110, this.y, 0, -10, this.color1);
+    this.drawPressure(ctx);
+    this.drawCamera(ctx, this.x-5, this.y-40, this.x+115, this.y-10);
+    this.drawPiston(ctx, this.shift);
+  }
+
+  drawPressure(ctx) {
+    ctx.fillStyle = this.color1w;
+    ctx.fillRect(this.x+15+this.shift, this.y-40, 100-this.shift, 10);
+    ctx.fillRect(this.x+15+this.shift, this.y-20, 100-this.shift, 10);
+  }
+
+  drawPiston(ctx, shift) {
+    let posX = this.x + shift;
+    this.drawRectangle(ctx, posX+5, this.y-10, posX+15, this.y-40);
+    this.drawRectangle(ctx, posX+15, this.y-20, posX+125, this.y-30);
+    this.drawRectangle(ctx, posX+125, this.y-15, posX+145, this.y-35);
+    this.drawSpring(ctx, this.x-5, this.y-13, posX+5);
   }
 }
 
@@ -3792,13 +4397,25 @@ class UIController {
           if (comp.type === 'ValveFlow') {
             prompts.push({key: 'conductance', message: 'Conductance (10-1000):'});
           }
+          if (comp.type === 'PneumaticFilter') {
+            prompts.push({key: 'conductance', message: 'Conductance (50-' + conductanceBase + '):'});
+          }
           if (comp.type === 'Compressor') {
             prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
+          }
+          if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
+            prompts.push({key: 'pressure', message: 'Pressure setting (0.1 - ' + compressorPressure + ' bar):'});
           }
           if (['Valve32r', 'Roller'].includes(comp.type)) {
             prompts.push({key: 'reference', message: 'Reference:'});
           }
-          if (['Cylinder1', 'Cylinder2'].includes(comp.type)) {
+          if (comp.type === 'AirTank') {
+            prompts.push({key: 'volume', message: 'Volume (20-10000 cm3):'});
+          }
+          if (comp.type === 'VisualIndicator') {
+            prompts.push({key: 'threshold', message: 'Air presence threshold (0.05 - ' + compressorPressure + ' bar):'});
+          }
+          if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
             prompts.push({key: 'massLoad', message: 'Mass Load (kg):'});
           }
           if (comp.canRotate()) {
@@ -3851,6 +4468,7 @@ class UIController {
       if (componentType === 'Escape') comp = new Escape(position);
       if (componentType === 'Text') comp = new Text(position);
       if (componentType === 'Cylinder1') comp = new Cylinder1(position);
+      if (componentType === 'Cylinder1Out') comp = new Cylinder1Out(position);
       if (componentType === 'Cylinder2') comp = new Cylinder2(position);
       if (componentType === 'Valve22m') comp = new Valve22m(position);
       if (componentType === 'Valve32b') comp = new Valve32b(position);
@@ -3865,6 +4483,12 @@ class UIController {
       if (componentType === 'ValveNret') comp = new ValveNret(position);
       if (componentType === 'ValveFlow') comp = new ValveFlow(position);
       if (componentType === 'ValveIsol') comp = new ValveIsol(position);
+      if (componentType === 'PressureReducer') comp = new PressureReducer(position);
+      if (componentType === 'BackPressureRegulator') comp = new BackPressureRegulator(position);
+      if (componentType === 'PneumaticFilter') comp = new PneumaticFilter(position);
+      if (componentType === 'TestPort') comp = new TestPort(position);
+      if (componentType === 'VisualIndicator') comp = new VisualIndicator(position);
+      if (componentType === 'AirTank') comp = new AirTank(position);
       if (componentType === 'ValveOr') comp = new ValveOr(position);
       if (componentType === 'ValveAnd') comp = new ValveAnd(position);
 
@@ -4058,6 +4682,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Manometer')  newcomp = new Manometer({x:comp.x, y:comp.y});
     if (comp.type === 'Escape')     newcomp = new Escape({x:comp.x, y:comp.y});
     if (comp.type === 'Cylinder1')  newcomp = new Cylinder1({x:comp.x, y:comp.y});
+    if (comp.type === 'Cylinder1Out')  newcomp = new Cylinder1Out({x:comp.x, y:comp.y});
     if (comp.type === 'Cylinder2')  newcomp = new Cylinder2({x:comp.x, y:comp.y});
     if (comp.type === 'Valve22m')   newcomp = new Valve22m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve32b')   newcomp = new Valve32b({x:comp.x, y:comp.y});
@@ -4069,6 +4694,12 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Valve52p')   newcomp = new Valve52p({x:comp.x, y:comp.y});
     if (comp.type === 'ValveFlow')  newcomp = new ValveFlow({x:comp.x, y:comp.y});
     if (comp.type === 'ValveIsol')  newcomp = new ValveIsol({x:comp.x, y:comp.y});
+    if (comp.type === 'PressureReducer') newcomp = new PressureReducer({x:comp.x, y:comp.y});
+    if (comp.type === 'BackPressureRegulator') newcomp = new BackPressureRegulator({x:comp.x, y:comp.y});
+    if (comp.type === 'PneumaticFilter') newcomp = new PneumaticFilter({x:comp.x, y:comp.y});
+    if (comp.type === 'TestPort') newcomp = new TestPort({x:comp.x, y:comp.y});
+    if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
+    if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
     if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
     if (comp.type === 'ValveAnd')   newcomp = new ValveAnd({x:comp.x, y:comp.y});
     if (comp.type === 'Text')       newcomp = new Text({x:comp.x, y:comp.y});

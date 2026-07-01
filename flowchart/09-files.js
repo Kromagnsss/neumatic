@@ -56,6 +56,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Manometer')  newcomp = new Manometer({x:comp.x, y:comp.y});
     if (comp.type === 'Escape')     newcomp = new Escape({x:comp.x, y:comp.y});
     if (comp.type === 'Cylinder1')  newcomp = new Cylinder1({x:comp.x, y:comp.y});
+    if (comp.type === 'Cylinder1Out') newcomp = new Cylinder1Out({x:comp.x, y:comp.y});
     if (comp.type === 'Cylinder2')  newcomp = new Cylinder2({x:comp.x, y:comp.y});
     if (comp.type === 'Valve22m')   newcomp = new Valve22m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve32b')   newcomp = new Valve32b({x:comp.x, y:comp.y});
@@ -66,6 +67,12 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'Valve52m')   newcomp = new Valve52m({x:comp.x, y:comp.y});
     if (comp.type === 'Valve52p')   newcomp = new Valve52p({x:comp.x, y:comp.y});
     if (comp.type === 'ValveFlow')  newcomp = new ValveFlow({x:comp.x, y:comp.y});
+    if (comp.type === 'PressureReducer') newcomp = new PressureReducer({x:comp.x, y:comp.y});
+    if (comp.type === 'BackPressureRegulator') newcomp = new BackPressureRegulator({x:comp.x, y:comp.y});
+    if (comp.type === 'PneumaticFilter') newcomp = new PneumaticFilter({x:comp.x, y:comp.y});
+    if (comp.type === 'TestPort') newcomp = new TestPort({x:comp.x, y:comp.y});
+    if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
+    if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
     if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
     if (comp.type === 'ValveAnd')   newcomp = new ValveAnd({x:comp.x, y:comp.y});
     if (comp.type === 'Text')       newcomp = new Text({x:comp.x, y:comp.y});
