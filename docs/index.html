@@ -312,37 +312,9 @@
           <li><a href="#" data-action="fOpen"  data-i18n="fOpen">Open Schematic</a></li>
 
           <li class="has-submenu">
-            <a href="#" data-i18n="fOpenExample">Open Example</a>
-            <ul class="submenu">
-              <li class="has-submenu">
-                <a href="#" data-i18n="singleMenu">Single</a>
-                <ul class="submenu">
-                  <li><a href="./index.html?loadFile=single-22.txt" target="_blank" data-i18n="eSingle01">Valve 2/2</a></li>
-                  <li><a href="./index.html?loadFile=single-32.txt" target="_blank" data-i18n="eSingle02">Valve 3/2</a></li>
-                  <li><a href="./index.html?loadFile=single-32-auto.txt" target="_blank" data-i18n="eSingle03">Valve 3/2 auto</a></li>
-                  <li><a href="./index.html?loadFile=single-32-and.txt" target="_blank" data-i18n="eSingle04">Valve AND</a></li>
-                  <li><a href="./index.html?loadFile=single-32-or.txt" target="_blank" data-i18n="eSingle05">Valve OR</a></li>
-                  <li><a href="./index.html?loadFile=single-32-x2.txt" target="_blank" data-i18n="eSingle06">Valve 3/2 x2</a></li>
-                </ul>
-              </li>
-
-              <li class="has-submenu">
-                <a href="#" data-i18n="doubleMenu">Double</a>
-                <ul class="submenu">
-                  <li><a href="./index.html?loadFile=double-32-manual.txt"  target="_blank" data-i18n="eDouble01">Valve 3/2 manual</a></li>
-                  <li><a href="./index.html?loadFile=double-52-manual.txt"  target="_blank" data-i18n="eDouble02">Valve 5/2 manual</a></li>
-                  <li><a href="./index.html?loadFile=double-52-piloted.txt" target="_blank" data-i18n="eDouble03">Valve 5/2 pneu.</a></li>
-                  <li><a href="./index.html?loadFile=double-52-auto.txt"    target="_blank" data-i18n="eDouble04">Valve 5/2 + Roller + Flow</a></li>
-                </ul>
-              </li>
-
-              <li class="has-submenu">
-                <a href="#" data-i18n="multipleMenu">Multiple</a>
-                <ul class="submenu">
-                  <li><a href="./index.html?loadFile=multi-abab.txt"  target="_blank" data-i18n="eMulti01">A+ B+ A- B-</a></li>
-                  <li><a href="./index.html?loadFile=multi-abba.txt"  target="_blank" data-i18n="eMulti02">A+ B+ B- A-</a></li>
-                </ul>
-              </li>
+            <a href="#" data-i18n="fOpenExample">Open examples</a>
+            <ul class="submenu" id="openExampleList">
+              <li><a href="#" data-i18n="examplesLoading">Loading examples...</a></li>
             </ul>
           </li>
 
@@ -585,7 +557,7 @@ const translations = {
     fSwap: 'Swap Screen',
     fNew: 'New Schematic',
     fOpen: 'Open Schematic',
-    fOpenExample: 'Open Example',
+    fOpenExample: 'Open examples',
     fSave: 'Save Schematic',
     fSaveStudent: 'Student',
     fSaveTeacher: 'Teacher',
@@ -593,6 +565,8 @@ const translations = {
     fCompare: 'Compare Files',
     fAbout: 'About...',
     examplesMenu: 'Examples',
+    examplesLoading: 'Loading examples...',
+    examplesEmpty: 'No examples found',
     singleMenu: 'Single',
     doubleMenu: 'Double',
     multipleMenu: 'Multiple',
@@ -662,7 +636,7 @@ const translations = {
     fSwap: 'Cambiar pantalla',
     fNew: 'Nuevo Esquema',
     fOpen: 'Abrir Esquema',
-    fOpenExample: 'Abrir ejemplo',
+    fOpenExample: 'Abrir ejemplos',
     fSave: 'Guardar Esquema',
     fSaveStudent: 'Alumno',
     fSaveTeacher: 'Profesor',
@@ -670,6 +644,8 @@ const translations = {
     fCompare: 'Comparar Archivos',
     fAbout: 'Sobre...',
     examplesMenu: 'Ejemplos',
+    examplesLoading: 'Cargando ejemplos...',
+    examplesEmpty: 'No se encontraron ejemplos',
     singleMenu: 'Simple',
     doubleMenu: 'Doble',
     multipleMenu: 'Múltiple',
@@ -5645,6 +5621,69 @@ async function openFile(filename) {
   }
 }
 
+function exampleMenuText(key) {
+  const lang = translations[globalLang] ? globalLang : 'en';
+  return translations[lang][key] || translations.en[key] || key;
+}
+
+function exampleDisplayName(filename) {
+  return filename.replace(/\.[^/.]+$/, '');
+}
+
+async function loadExampleMenu() {
+  const exampleList = document.getElementById('openExampleList');
+  if (!exampleList) return;
+
+  try {
+    const answer = await fetch('./examples-manifest.json', {cache: 'no-store'});
+    if (!answer.ok) {
+      throw new Error('Could not read examples manifest');
+    }
+
+    const examples = await answer.json();
+    exampleList.innerHTML = '';
+
+    if (!Array.isArray(examples) || examples.length === 0) {
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = '#';
+      link.textContent = exampleMenuText('examplesEmpty');
+      item.appendChild(link);
+      exampleList.appendChild(item);
+      return;
+    }
+
+    for (const example of examples) {
+      const filename = (typeof example === 'string') ? example : example.file;
+      if (!filename) continue;
+
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = './index.html?loadFile=examples/' + encodeURIComponent(filename);
+      link.textContent = example.name || exampleDisplayName(filename);
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        openFile('./examples/' + encodeURIComponent(filename));
+        document.querySelectorAll(".submenu").forEach(sm =>
+          sm.classList.remove("active")
+        );
+      });
+      item.appendChild(link);
+      exampleList.appendChild(item);
+    }
+  }
+  catch (error) {
+    console.error('Error loading examples:', error);
+    exampleList.innerHTML = '';
+    const item = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = '#';
+    link.textContent = exampleMenuText('examplesEmpty');
+    item.appendChild(link);
+    exampleList.appendChild(item);
+  }
+}
+
 
 async function savePNG(filename = "image.png") {
   renderer.draw();
@@ -6012,6 +6051,7 @@ let last = performance.now();
 function firstSetupApp() {
   ui._resizeCanvas();
   navigatorLang();
+  loadExampleMenu();
   updateControlHighlights();
 
   let config = query_read();
