@@ -2106,6 +2106,7 @@ class PressureReducer extends ComponentBase {
     this.color2 = defaultColor;
     this.options = {
       pressure: 100,
+      flipped: false,
     };
   }
 
@@ -2117,11 +2118,28 @@ class PressureReducer extends ComponentBase {
       this.options.pressure = compressorPressure;
     if (this.options.pressure < 0.1)
       this.options.pressure = 0.1;
+
+    if (this.type === 'PressureReducer') {
+      this.options.flipped = (this.options.flipped === true || this.options.flipped === 'true');
+    }
+    else {
+      delete this.options.flipped;
+    }
+  }
+
+  isFlipped() {
+    return this.type === 'PressureReducer' && (this.options.flipped === true || this.options.flipped === 'true');
+  }
+
+  flip() {
+    this.options.flipped = !this.isFlipped();
   }
 
   vias() {
-    const via1 = {x:this.x-60, y:this.y};
-    const via2 = {x:this.x+60, y:this.y};
+    const viaLeft = {x:this.x-60, y:this.y};
+    const viaRight = {x:this.x+60, y:this.y};
+    const via1 = this.isFlipped() ? viaRight : viaLeft;
+    const via2 = this.isFlipped() ? viaLeft : viaRight;
     return this.rotateVias([via1, via2]);
   }
 
@@ -2161,16 +2179,23 @@ class PressureReducer extends ComponentBase {
   }
 
   draw(ctx) {
-    this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color1);
-    this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color2);
-    this.drawRegulatorBody(ctx, 'RED', true);
+    if (this.isFlipped()) {
+      this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color1);
+      this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color2);
+    }
+    else {
+      this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color1);
+      this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color2);
+    }
+    this.drawRegulatorBody(ctx, 'RED', !this.isFlipped(), this.color2, this.isFlipped());
   }
 
-  drawRegulatorBody(ctx, label, downstreamPilot) {
+  drawRegulatorBody(ctx, label, downstreamPilot, senseColor=null, flipped=false) {
     const color = (this.selected) ? selectedColor : defaultColor;
     const senseX = downstreamPilot ? this.x+34 : this.x-34;
     const gaugeX = downstreamPilot ? this.x+48 : this.x-48;
-    const senseColor = (this.selected) ? selectedColor : (downstreamPilot ? this.color2 : this.color1);
+    if (senseColor === null) senseColor = downstreamPilot ? this.color2 : this.color1;
+    if (this.selected) senseColor = selectedColor;
     ctx.lineWidth = lineWidth;
     ctx.strokeStyle = color;
     ctx.fillStyle = '#fff';
@@ -2203,7 +2228,7 @@ class PressureReducer extends ComponentBase {
     ctx.beginPath();
     ctx.moveTo(this.x, this.y-16);
     ctx.lineTo(this.x, this.y-34);
-    ctx.lineTo(this.x-18, this.y-34);
+    ctx.lineTo(flipped ? this.x+18 : this.x-18, this.y-34);
     ctx.stroke();
 
     ctx.beginPath();
@@ -2256,6 +2281,7 @@ class BackPressureRegulator extends PressureReducer {
     super(pos);
     this.type = 'BackPressureRegulator';
     this.options.pressure = 3;
+    delete this.options.flipped;
   }
 
   update(ctx, engine, dt) {
@@ -2465,6 +2491,7 @@ class DifferentialPressureSwitch extends ComponentBase {
       pressure: 100,
       inverse: false,
       exhaustConductance: conductanceBase,
+      flipped: false,
     };
   }
 
@@ -2478,6 +2505,7 @@ class DifferentialPressureSwitch extends ComponentBase {
       this.options.pressure = 0.1;
 
     this.options.inverse = (this.options.inverse === true || this.options.inverse === 'true');
+    this.options.flipped = (this.options.flipped === true || this.options.flipped === 'true');
 
     this.options.exhaustConductance = Number(this.options.exhaustConductance);
     if (isNaN(this.options.exhaustConductance))
@@ -2488,8 +2516,16 @@ class DifferentialPressureSwitch extends ComponentBase {
       this.options.exhaustConductance = 10;
   }
 
+  isFlipped() {
+    return this.options.flipped === true || this.options.flipped === 'true';
+  }
+
+  flip() {
+    this.options.flipped = !this.isFlipped();
+  }
+
   vias() {
-    const viaHP = {x:this.x, y:this.y-60, domain: 'process'};
+    const viaHP = {x:this.x, y:this.isFlipped() ? this.y+60 : this.y-60, domain: 'process'};
     const via1 = {x:this.x-50, y:this.y};
     const via2 = {x:this.x+50, y:this.y};
     return this.rotateVias([viaHP, via1, via2]);
@@ -2530,11 +2566,15 @@ class DifferentialPressureSwitch extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-62, this.y-70, this.x+62, this.y+30, pos);
+    const y1 = this.isFlipped() ? this.y-30 : this.y-70;
+    const y2 = this.isFlipped() ? this.y+70 : this.y+30;
+    return this.nearRect(this.x-62, y1, this.x+62, y2, pos);
   }
 
   draw(ctx) {
-    this.drawPort(ctx, this.x, this.y-60, 0, 18, this.colorHP);
+    const flipped = this.isFlipped();
+    const mirrorY = (offset) => this.y + (flipped ? -offset : offset);
+    this.drawPort(ctx, this.x, mirrorY(-60), 0, flipped ? -18 : 18, this.colorHP);
     this.drawPort(ctx, this.x-50, this.y, 18, 0, this.color1);
     this.drawPort(ctx, this.x+50, this.y, -18, 0, this.color2);
 
@@ -2546,15 +2586,15 @@ class DifferentialPressureSwitch extends ComponentBase {
     this.drawRectangle(ctx, this.x-32, this.y-25, this.x+32, this.y+25);
 
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y-42);
-    ctx.lineTo(this.x, this.y-25);
+    ctx.moveTo(this.x, mirrorY(-42));
+    ctx.lineTo(this.x, mirrorY(-25));
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(this.x-20, this.y-25);
-    ctx.lineTo(this.x-20, this.y-34);
-    ctx.arc(this.x, this.y-34, 20, Math.PI, 0);
-    ctx.lineTo(this.x+20, this.y-25);
+    ctx.moveTo(this.x-20, mirrorY(-25));
+    ctx.lineTo(this.x-20, mirrorY(-34));
+    ctx.quadraticCurveTo(this.x, mirrorY(-54), this.x+20, mirrorY(-34));
+    ctx.lineTo(this.x+20, mirrorY(-25));
     ctx.stroke();
 
     ctx.strokeStyle = this.active ? this.color1 : color;
@@ -2566,8 +2606,8 @@ class DifferentialPressureSwitch extends ComponentBase {
       this.drawArrow(ctx, this.x-24, this.y, this.x+24, this.y, this.color1);
     }
     else {
-      ctx.moveTo(this.x-20, this.y-16);
-      ctx.lineTo(this.x+20, this.y+16);
+      ctx.moveTo(this.x-20, mirrorY(-16));
+      ctx.lineTo(this.x+20, mirrorY(16));
       ctx.stroke();
       ctx.strokeStyle = this.color1;
       ctx.beginPath();
@@ -2579,9 +2619,9 @@ class DifferentialPressureSwitch extends ComponentBase {
       ctx.moveTo(this.x+20, this.y);
       ctx.lineTo(this.x+32, this.y);
       ctx.moveTo(this.x+20, this.y);
-      ctx.lineTo(this.x+20, this.y+16);
-      ctx.moveTo(this.x+15, this.y+16);
-      ctx.lineTo(this.x+25, this.y+16);
+      ctx.lineTo(this.x+20, mirrorY(16));
+      ctx.moveTo(this.x+15, mirrorY(16));
+      ctx.lineTo(this.x+25, mirrorY(16));
       ctx.stroke();
     }
 
@@ -2593,7 +2633,7 @@ class DifferentialPressureSwitch extends ComponentBase {
     ctx.font = textFont;
     ctx.fillStyle = color;
     ctx.textAlign = 'center';
-    ctx.fillText('HP', this.x, this.y-48);
+    ctx.fillText('HP', this.x, this.isFlipped() ? this.y+52 : this.y-48);
     ctx.fillText('1', this.x-50, this.y+18);
     ctx.fillText('2', this.x+50, this.y+18);
     ctx.fillText(this.options.pressure + ' bar', this.x, this.y+18);
@@ -5286,7 +5326,8 @@ class UIController {
       for (const comp of this.engine.components) {
         if (comp.nearRotated(position)) {
           if (['Manometer', 'ProcessManometer', 'ValveNret', 'Valve22m', 'Valve32b',
-               'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps'].includes(comp.type)) {
+               'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps',
+               'PressureReducer', 'DifferentialPressureSwitch'].includes(comp.type)) {
             comp.flip();
             break;
           }
