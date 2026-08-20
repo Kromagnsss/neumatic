@@ -809,8 +809,8 @@ const componentLabelOffsets = {
   DifferentialPressureSwitch: {x:0, y:76},
   AirTank: {x:0, y:34},
   ProcessReservoir: {x:0, y:62},
-  ProcessIsolationValve: {x:0, y:34},
-  ValveIsol: {x:0, y:34},
+  ProcessIsolationValve: {x:30, y:-25},
+  ValveIsol: {x:30, y:-25},
   Cylinder1: {x:60, y:12},
   Cylinder1Out: {x:60, y:12},
   Cylinder2: {x:60, y:12},
@@ -1769,6 +1769,66 @@ class ProcessPipe extends Pipe {
 }
 
 
+function drawIsolationValveSymbol(ctx, comp, symbolColor) {
+  const x = comp.x;
+  const y = comp.y;
+  const cy = y - 25;
+  const wheelX = x - 44;
+
+  ctx.save();
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = symbolColor;
+  ctx.fillStyle = '#fff';
+
+  ctx.beginPath();
+  ctx.moveTo(x, cy);
+  ctx.lineTo(x - 16, y - 7);
+  ctx.lineTo(x + 16, y - 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x, cy);
+  ctx.lineTo(x - 16, y - 43);
+  ctx.lineTo(x + 16, y - 43);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  if (comp.options.closed) {
+    ctx.strokeStyle = comp.selected ? selectedColor : '#b00';
+    ctx.beginPath();
+    ctx.moveTo(x - 18, y - 44);
+    ctx.lineTo(x + 18, y - 6);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = symbolColor;
+  ctx.fillStyle = symbolColor;
+  ctx.beginPath();
+  ctx.moveTo(x, cy);
+  ctx.lineTo(wheelX, cy);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(wheelX, cy);
+  ctx.bezierCurveTo(wheelX - 15, cy - 8, wheelX - 15, cy - 24, wheelX, cy - 24);
+  ctx.bezierCurveTo(wheelX + 15, cy - 24, wheelX + 15, cy - 8, wheelX, cy);
+  ctx.moveTo(wheelX, cy);
+  ctx.bezierCurveTo(wheelX - 15, cy + 8, wheelX - 15, cy + 24, wheelX, cy + 24);
+  ctx.bezierCurveTo(wheelX + 15, cy + 24, wheelX + 15, cy + 8, wheelX, cy);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(wheelX, cy, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+
 class ProcessIsolationValve extends ComponentBase {
   constructor(pos) {
     super(pos);
@@ -1817,64 +1877,14 @@ class ProcessIsolationValve extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-20, this.y-58, this.x+20, this.y-7, pos);
+    return this.nearRect(this.x-62, this.y-54, this.x+20, this.y+2, pos);
   }
 
   draw(ctx) {
-    this.drawPort(ctx, this.x, this.y, 0, -8, this.color1);
-    this.drawPort(ctx, this.x, this.y-50, 0, 8, this.color2);
-
     const color = (this.selected) ? selectedColor : processDefaultColor;
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = '#fff';
-
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y-25);
-    ctx.lineTo(this.x-13, this.y-10);
-    ctx.lineTo(this.x+13, this.y-10);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y-25);
-    ctx.lineTo(this.x-13, this.y-40);
-    ctx.lineTo(this.x+13, this.y-40);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.strokeStyle = (this.selected) ? selectedColor : (this.options.closed ? '#b00' : this.color1);
-    ctx.beginPath();
-    if (this.options.closed) {
-      ctx.moveTo(this.x-16, this.y-41);
-      ctx.lineTo(this.x+16, this.y-9);
-    }
-    else {
-      ctx.moveTo(this.x, this.y-42);
-      ctx.lineTo(this.x, this.y-8);
-    }
-    ctx.stroke();
-
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y-40);
-    ctx.lineTo(this.x, this.y-48);
-    if (this.options.closed) {
-      ctx.moveTo(this.x-14, this.y-55);
-      ctx.lineTo(this.x+14, this.y-41);
-    }
-    else {
-      ctx.moveTo(this.x-18, this.y-48);
-      ctx.lineTo(this.x+18, this.y-48);
-    }
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(this.x, this.y-48, 3, 0, Math.PI*2);
-    ctx.fill();
+    this.drawPort(ctx, this.x, this.y, 0, -7, this.color1);
+    this.drawPort(ctx, this.x, this.y-50, 0, 7, this.color2);
+    drawIsolationValveSymbol(ctx, this, color);
   }
 }
 
@@ -2371,67 +2381,18 @@ class ValveIsol extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-20, this.y-58, this.x+20, this.y-7, pos);
+    return this.nearRect(this.x-62, this.y-54, this.x+20, this.y+2, pos);
   }
 
   draw(ctx) {
-    this.drawPort(ctx, this.x, this.y, 0, -8, this.color1);
-    this.drawPort(ctx, this.x, this.y-50, 0, 8, this.color2);
+    this.drawPort(ctx, this.x, this.y, 0, -7, this.color1);
+    this.drawPort(ctx, this.x, this.y-50, 0, 7, this.color2);
     this.drawValveIsol(ctx);
   }
 
   drawValveIsol(ctx) {
     const color = (this.selected) ? selectedColor : defaultColor;
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = '#fff';
-
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y-25);
-    ctx.lineTo(this.x-13, this.y-10);
-    ctx.lineTo(this.x+13, this.y-10);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y-25);
-    ctx.lineTo(this.x-13, this.y-40);
-    ctx.lineTo(this.x+13, this.y-40);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.strokeStyle = (this.selected) ? selectedColor : (this.options.closed ? '#b00' : defaultColor);
-    ctx.beginPath();
-    if (this.options.closed) {
-      ctx.moveTo(this.x-16, this.y-41);
-      ctx.lineTo(this.x+16, this.y-9);
-    }
-    else {
-      ctx.moveTo(this.x, this.y-42);
-      ctx.lineTo(this.x, this.y-8);
-    }
-    ctx.stroke();
-
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y-40);
-    ctx.lineTo(this.x, this.y-48);
-    if (this.options.closed) {
-      ctx.moveTo(this.x-14, this.y-55);
-      ctx.lineTo(this.x+14, this.y-41);
-    }
-    else {
-      ctx.moveTo(this.x-18, this.y-48);
-      ctx.lineTo(this.x+18, this.y-48);
-    }
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(this.x, this.y-48, 3, 0, Math.PI*2);
-    ctx.fill();
+    drawIsolationValveSymbol(ctx, this, color);
   }
 }
 
@@ -5767,12 +5728,12 @@ function toolPreviewConfig(type) {
     Pipe: {scale: 1, offsetX: 0, offsetY: 0},
     ProcessPipe: {scale: 1, offsetX: 0, offsetY: 0},
     Text: {scale: 0.9, offsetX: 0, offsetY: -1},
-    ValveIsol: {scale: 0.58, offsetX: -14, offsetY: 0},
+    ValveIsol: {scale: 0.56, offsetX: -13, offsetY: 12},
     PressureReducer: {scale: 0.42, offsetX: 0, offsetY: 2},
     BackPressureRegulator: {scale: 0.42, offsetX: 0, offsetY: 2},
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
-    ProcessIsolationValve: {scale: 0.58, offsetX: -14, offsetY: 0},
+    ProcessIsolationValve: {scale: 0.56, offsetX: -13, offsetY: 12},
     Cylinder1: {scale: 0.35, offsetX: -25, offsetY: 7},
     Cylinder1Out: {scale: 0.33, offsetX: -38, offsetY: 7},
     Cylinder2: {scale: 0.35, offsetX: -25, offsetY: 7},
