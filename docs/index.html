@@ -1550,7 +1550,7 @@ class ProcessIsolationValve extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-18, this.y-43, this.x+28, this.y-7, pos);
+    return this.nearRect(this.x-20, this.y-58, this.x+20, this.y-7, pos);
   }
 
   draw(ctx) {
@@ -1591,11 +1591,23 @@ class ProcessIsolationValve extends ComponentBase {
     ctx.stroke();
 
     ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(this.x+13, this.y-25);
-    ctx.lineTo(this.x+28, this.y-25);
-    ctx.lineTo(this.x+28, this.y-17);
+    ctx.moveTo(this.x, this.y-40);
+    ctx.lineTo(this.x, this.y-48);
+    if (this.options.closed) {
+      ctx.moveTo(this.x-14, this.y-55);
+      ctx.lineTo(this.x+14, this.y-41);
+    }
+    else {
+      ctx.moveTo(this.x-18, this.y-48);
+      ctx.lineTo(this.x+18, this.y-48);
+    }
     ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y-48, 3, 0, Math.PI*2);
+    ctx.fill();
   }
 }
 
@@ -2091,7 +2103,7 @@ class ValveIsol extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-18, this.y-43, this.x+28, this.y-7, pos);
+    return this.nearRect(this.x-20, this.y-58, this.x+20, this.y-7, pos);
   }
 
   draw(ctx) {
@@ -2135,11 +2147,23 @@ class ValveIsol extends ComponentBase {
     ctx.stroke();
 
     ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(this.x+13, this.y-25);
-    ctx.lineTo(this.x+28, this.y-25);
-    ctx.lineTo(this.x+28, this.y-17);
+    ctx.moveTo(this.x, this.y-40);
+    ctx.lineTo(this.x, this.y-48);
+    if (this.options.closed) {
+      ctx.moveTo(this.x-14, this.y-55);
+      ctx.lineTo(this.x+14, this.y-41);
+    }
+    else {
+      ctx.moveTo(this.x-18, this.y-48);
+      ctx.lineTo(this.x+18, this.y-48);
+    }
     ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y-48, 3, 0, Math.PI*2);
+    ctx.fill();
   }
 }
 
@@ -2167,7 +2191,7 @@ class PressureReducer extends ComponentBase {
     if (this.options.pressure < 0.1)
       this.options.pressure = 0.1;
 
-    if (this.type === 'PressureReducer') {
+    if (['PressureReducer', 'BackPressureRegulator'].includes(this.type)) {
       this.options.flipped = (this.options.flipped === true || this.options.flipped === 'true');
     }
     else {
@@ -2176,7 +2200,8 @@ class PressureReducer extends ComponentBase {
   }
 
   isFlipped() {
-    return this.type === 'PressureReducer' && (this.options.flipped === true || this.options.flipped === 'true');
+    return ['PressureReducer', 'BackPressureRegulator'].includes(this.type) &&
+      (this.options.flipped === true || this.options.flipped === 'true');
   }
 
   flip() {
@@ -2307,7 +2332,18 @@ class PressureReducer extends ComponentBase {
     ctx.lineTo(gaugeX, this.y-32);
     ctx.stroke();
     this.drawRegulatorGauge(ctx, gaugeX, this.y-48, senseColor);
+    this.drawRegulatorFlowArrow(ctx, flipped, color);
     this.drawRegulatorLabel(ctx, label);
+  }
+
+  drawRegulatorFlowArrow(ctx, flipped, color) {
+    const y = this.y + 26;
+    if (flipped) {
+      this.drawArrow(ctx, this.x+18, y, this.x-18, y, color);
+    }
+    else {
+      this.drawArrow(ctx, this.x-18, y, this.x+18, y, color);
+    }
   }
 
   drawRegulatorGauge(ctx, x, y, color) {
@@ -2326,7 +2362,7 @@ class PressureReducer extends ComponentBase {
     ctx.font = textFont;
     ctx.fillStyle = color;
     ctx.textAlign = 'center';
-    ctx.fillText(text, this.x, this.y+36);
+    ctx.fillText(text, this.x, this.y+44);
     ctx.textAlign = 'start';
   }
 }
@@ -2337,7 +2373,6 @@ class BackPressureRegulator extends PressureReducer {
     super(pos);
     this.type = 'BackPressureRegulator';
     this.options.pressure = 3;
-    delete this.options.flipped;
   }
 
   update(ctx, engine, dt) {
@@ -2367,9 +2402,15 @@ class BackPressureRegulator extends PressureReducer {
   }
 
   draw(ctx) {
-    this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color1);
-    this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color2);
-    this.drawRegulatorBody(ctx, 'BPR', false);
+    if (this.isFlipped()) {
+      this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color1);
+      this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color2);
+    }
+    else {
+      this.drawPort(ctx, this.x-60, this.y, 20, 0, this.color1);
+      this.drawPort(ctx, this.x+60, this.y, -20, 0, this.color2);
+    }
+    this.drawRegulatorBody(ctx, 'BPR', this.isFlipped(), this.color1, this.isFlipped());
   }
 }
 
@@ -5199,13 +5240,13 @@ function toolPreviewConfig(type) {
     Pipe: {scale: 1, offsetX: 0, offsetY: 0},
     ProcessPipe: {scale: 1, offsetX: 0, offsetY: 0},
     Text: {scale: 0.9, offsetX: 0, offsetY: -1},
-    PressureReducer: {scale: 0.48, offsetX: 0, offsetY: 8},
-    BackPressureRegulator: {scale: 0.48, offsetX: 0, offsetY: 8},
+    PressureReducer: {scale: 0.42, offsetX: 0, offsetY: 2},
+    BackPressureRegulator: {scale: 0.42, offsetX: 0, offsetY: 2},
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
-    Cylinder1: {scale: 0.42, offsetX: 0, offsetY: 0},
-    Cylinder1Out: {scale: 0.42, offsetX: 0, offsetY: 0},
-    Cylinder2: {scale: 0.42, offsetX: 0, offsetY: 0},
+    Cylinder1: {scale: 0.35, offsetX: -25, offsetY: 7},
+    Cylinder1Out: {scale: 0.33, offsetX: -38, offsetY: 7},
+    Cylinder2: {scale: 0.35, offsetX: -25, offsetY: 7},
   };
   return {...defaults, ...(configs[type] || {})};
 }
@@ -5502,7 +5543,8 @@ class UIController {
         if (comp.nearRotated(position)) {
           if (['Manometer', 'ProcessManometer', 'ValveNret', 'Valve22m', 'Valve32b',
                'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps',
-               'PressureReducer', 'DifferentialPressureSwitch'].includes(comp.type)) {
+               'PressureReducer', 'BackPressureRegulator',
+               'DifferentialPressureSwitch'].includes(comp.type)) {
             comp.flip();
             break;
           }
