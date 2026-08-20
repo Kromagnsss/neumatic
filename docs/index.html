@@ -263,6 +263,140 @@
     line-height: 1;
   }
 
+  .bom-panel {
+    position: fixed;
+    top: 35px;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-left: 1px solid #b8bec4;
+    box-sizing: border-box;
+    z-index: 875;
+    transition: width 0.15s ease;
+  }
+
+  .bom-panel.is-collapsed {
+    width: 38px;
+  }
+
+  .bom-header {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid #d5d9de;
+    box-sizing: border-box;
+  }
+
+  .bom-title {
+    margin: 0;
+    flex: 1;
+    font-size: 14px;
+    font-weight: 700;
+    color: #202428;
+  }
+
+  .bom-toggle {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #b6bec6;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    color: #202428;
+  }
+
+  .bom-toggle:hover,
+  .bom-tab:hover {
+    background: #eef5ff;
+    border-color: #6d94c7;
+  }
+
+  .bom-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px;
+    border-bottom: 1px solid #d5d9de;
+  }
+
+  .bom-tab {
+    flex: 1;
+    height: 30px;
+    border: 1px solid #b6bec6;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .bom-tab.is-active {
+    background: #dbeafe;
+    border-color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px #1d4ed8;
+  }
+
+  .bom-content {
+    flex: 1;
+    overflow: auto;
+    padding: 8px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .bom-panel.is-collapsed .bom-title,
+  .bom-panel.is-collapsed .bom-tabs,
+  .bom-panel.is-collapsed .bom-content {
+    display: none;
+  }
+
+  .bom-panel.is-collapsed .bom-header {
+    padding: 6px 4px;
+    justify-content: center;
+    border-bottom: 0;
+  }
+
+  .bom-panel.is-collapsed .bom-toggle {
+    writing-mode: vertical-rl;
+    height: 82px;
+    width: 28px;
+  }
+
+  .bom-content h3 {
+    margin: 10px 0 4px;
+    font-size: 12px;
+    color: #48515a;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  .bom-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+  }
+
+  .bom-content th,
+  .bom-content td {
+    padding: 4px;
+    border: 1px solid #d5d9de;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .bom-content th {
+    background: #f3f5f7;
+    font-weight: 700;
+  }
+
+  .bom-empty {
+    margin: 8px 0;
+    color: #69737d;
+  }
+
   dialog {
     margin-top: 40px;
     margin-bottom: auto;
@@ -433,6 +567,18 @@
     </div>
   </div>
 
+  <aside id="bomPanel" class="bom-panel">
+    <div class="bom-header">
+      <h2 class="bom-title">Nomenclature</h2>
+      <button id="bomToggle" class="bom-toggle" type="button" title="Masquer la nomenclature">Masquer</button>
+    </div>
+    <div class="bom-tabs">
+      <button class="bom-tab is-active" type="button" data-bom-mode="purchase">Liste achat</button>
+      <button class="bom-tab" type="button" data-bom-mode="technical">Technique</button>
+    </div>
+    <div id="bomContent" class="bom-content"></div>
+  </aside>
+
   <canvas id="canvas" class="canvas"></canvas>
 
   <dialog id="textPrompt">
@@ -583,6 +729,99 @@ const componentToolTypes = {
   cCylinder1Out: 'Cylinder1Out',
   cCylinder2: 'Cylinder2',
 };
+
+const componentLabelPrefixes = {
+  Compressor: 'CMP',
+  Manometer: 'MAN',
+  Escape: 'EXH',
+  Valve22m: 'V22',
+  Valve32b: 'V32B',
+  Valve32m: 'V32M',
+  Valve32r: 'V32R',
+  Roller: 'ROL',
+  Valve32p: 'V32P',
+  Valve32ps: 'V32S',
+  Valve42m: 'V42',
+  Valve52m: 'V52',
+  Valve52p: 'V52P',
+  ValveOr: 'OR',
+  ValveAnd: 'AND',
+  ValveNret: 'NRV',
+  ValveFlow: 'CHK',
+  ValveIsol: 'ISO',
+  PressureReducer: 'RED',
+  BackPressureRegulator: 'BPR',
+  PneumaticFilter: 'FIL',
+  TestPort: 'TPT',
+  VisualIndicator: 'VIS',
+  DifferentialPressureSwitch: 'DPS',
+  AirTank: 'ATK',
+  ProcessReservoir: 'PTK',
+  ProcessIsolationValve: 'PIV',
+  ProcessTestPort: 'PTP',
+  ProcessManometer: 'PMG',
+  Cylinder1: 'CYL',
+  Cylinder1Out: 'CYO',
+  Cylinder2: 'CDA',
+};
+
+const componentTypeNames = {
+  Compressor: 'Compressor',
+  Manometer: 'Manometer',
+  Escape: 'Exhaust',
+  Valve22m: 'Valve 2/2 manual',
+  Valve32b: 'Valve 3/2 button',
+  Valve32m: 'Valve 3/2 manual',
+  Valve32r: 'Valve 3/2 roller',
+  Roller: 'Roller',
+  Valve32p: 'Valve 3/2 pilot',
+  Valve32ps: 'Valve 3/2 pilot spring',
+  Valve42m: 'Valve 4/2 manual',
+  Valve52m: 'Valve 5/2 manual',
+  Valve52p: 'Valve 5/2 pilot',
+  ValveOr: 'OR valve',
+  ValveAnd: 'AND valve',
+  ValveNret: 'Non-return valve',
+  ValveFlow: 'Choke valve',
+  ValveIsol: 'Isolation valve',
+  PressureReducer: 'Pressure reducer',
+  BackPressureRegulator: 'Back-pressure regulator',
+  PneumaticFilter: 'Filter',
+  TestPort: 'Test port',
+  VisualIndicator: 'Visual indicator',
+  DifferentialPressureSwitch: 'Differential pressure switch',
+  AirTank: 'Air tank',
+  ProcessReservoir: 'Process tank',
+  ProcessIsolationValve: 'Process isolation valve',
+  ProcessTestPort: 'Process test port',
+  ProcessManometer: 'Process manometer',
+  Cylinder1: 'Single-acting cylinder',
+  Cylinder1Out: 'Single-acting rod-out cylinder',
+  Cylinder2: 'Double-acting cylinder',
+};
+
+const componentLabelOffsets = {
+  Compressor: {x:0, y:48},
+  Manometer: {x:0, y:34},
+  ProcessManometer: {x:0, y:34},
+  Escape: {x:0, y:40},
+  PressureReducer: {x:0, y:62},
+  BackPressureRegulator: {x:0, y:62},
+  DifferentialPressureSwitch: {x:0, y:76},
+  AirTank: {x:0, y:34},
+  ProcessReservoir: {x:0, y:62},
+  ProcessIsolationValve: {x:0, y:34},
+  ValveIsol: {x:0, y:34},
+  Cylinder1: {x:60, y:12},
+  Cylinder1Out: {x:60, y:12},
+  Cylinder2: {x:60, y:12},
+  Roller: {x:0, y:28},
+  Text: {x:0, y:0},
+};
+
+let bomMode = 'purchase';
+let bomCollapsed = false;
+let bomRenderSignature = '';
 let mousePosition = null;
 let stepTime = null;
 let simulationActive = false;
@@ -1018,6 +1257,34 @@ class ComponentBase {
     ctx.rotate(rotation * Math.PI / 180);
     ctx.translate(-this.x, -this.y);
     this.draw(ctx);
+    ctx.restore();
+  }
+
+  labelPosition() {
+    const offset = componentLabelOffsets[this.type] || {x:0, y:42};
+    const rotation = (this.canRotate()) ? this.getRotation() : 0;
+    if (rotation === 0) {
+      return {x:this.x + offset.x, y:this.y + offset.y};
+    }
+
+    const rad = rotation * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return {
+      x: this.x + offset.x * cos - offset.y * sin,
+      y: this.y + offset.x * sin + offset.y * cos,
+    };
+  }
+
+  drawUnitLabel(ctx, label) {
+    if (!label) return;
+    const pos = this.labelPosition();
+    ctx.save();
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = 'rgba(80,80,80,0.58)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, pos.x, pos.y);
     ctx.restore();
   }
 
@@ -5183,6 +5450,265 @@ class Engine {
 
 /*************************************************************************/
 
+function componentSupportsLabel(type) {
+  return !!componentLabelPrefixes[type];
+}
+
+
+function componentLabelPrefix(type) {
+  return componentLabelPrefixes[type] || 'EQP';
+}
+
+
+function componentTypeName(type) {
+  return componentTypeNames[type] || type;
+}
+
+
+function formatComponentIndex(value) {
+  return String(value).padStart(2, '0');
+}
+
+
+function normalizeForcedLabel(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 16);
+}
+
+
+function forcedComponentLabel(comp) {
+  if (!comp || !comp.options || comp.options.label === undefined) return '';
+  return normalizeForcedLabel(comp.options.label);
+}
+
+
+function buildComponentLabelMap(components) {
+  const counters = {};
+  const labels = new Map();
+  for (const comp of components) {
+    if (!componentSupportsLabel(comp.type)) continue;
+    const prefix = componentLabelPrefix(comp.type);
+    counters[prefix] = (counters[prefix] || 0) + 1;
+    const autoLabel = prefix + '_' + formatComponentIndex(counters[prefix]);
+    labels.set(comp, forcedComponentLabel(comp) || autoLabel);
+  }
+  return labels;
+}
+
+
+function assignForcedComponentLabel(comp, value) {
+  if (!componentSupportsLabel(comp.type)) return {ok:true};
+  const normalized = normalizeForcedLabel(value);
+  const previous = comp.options.label;
+
+  if (!normalized) {
+    delete comp.options.label;
+    return {ok:true};
+  }
+
+  delete comp.options.label;
+  const labels = buildComponentLabelMap(engine.components);
+  for (const [other, label] of labels.entries()) {
+    if (other !== comp && label === normalized) {
+      if (previous !== undefined) comp.options.label = previous;
+      return {ok:false, message:'Label already used: ' + normalized};
+    }
+  }
+
+  comp.options.label = normalized;
+  return {ok:true};
+}
+
+
+function normalizeLoadedComponentLabels(components) {
+  for (const comp of components) {
+    if (!componentSupportsLabel(comp.type) || !comp.options) continue;
+    const normalized = normalizeForcedLabel(comp.options.label);
+    if (normalized) comp.options.label = normalized;
+    else delete comp.options.label;
+  }
+
+  for (const comp of components) {
+    if (!componentSupportsLabel(comp.type) || !comp.options.label) continue;
+    const label = comp.options.label;
+    delete comp.options.label;
+    const labels = buildComponentLabelMap(components);
+    const duplicate = [...labels.entries()].some(([other, otherLabel]) => other !== comp && otherLabel === label);
+    if (!duplicate) comp.options.label = label;
+  }
+}
+
+
+function equipmentComponents(components) {
+  return components.filter(comp => componentSupportsLabel(comp.type));
+}
+
+
+function htmlEscape(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+
+function yesNo(value) {
+  return value ? 'yes' : 'no';
+}
+
+
+function openClosed(comp) {
+  return comp.options.closed ? 'closed' : 'open';
+}
+
+
+function flippedText(comp) {
+  return (typeof comp.isFlipped === 'function' && comp.isFlipped()) ? 'flipped' : 'normal';
+}
+
+
+function componentTechnicalParams(comp) {
+  const rotation = comp.getRotation();
+  const rotationText = rotation ? '; rotation ' + rotation + ' deg' : '';
+  if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
+    return 'setting ' + comp.options.pressure + ' bar; ' + flippedText(comp);
+  }
+  if (comp.type === 'ValveFlow') return 'conductance ' + comp.options.conductance;
+  if (comp.type === 'PneumaticFilter') return 'conductance ' + comp.options.conductance;
+  if (comp.type === 'Compressor') return 'pressure ' + comp.options.pressure + ' bar';
+  if (comp.type === 'DifferentialPressureSwitch') {
+    return 'HP ' + comp.options.pressure + ' bar; inverse ' + yesNo(comp.options.inverse) +
+      '; exhaust ' + comp.options.exhaustConductance + '; ' + flippedText(comp);
+  }
+  if (comp.type === 'AirTank') return 'volume ' + comp.options.volume + ' cm3';
+  if (comp.type === 'ProcessReservoir') {
+    return 'min ' + comp.options.pressureMin + ' bar; max ' + comp.options.pressureMax +
+      ' bar; period ' + comp.options.period + ' s';
+  }
+  if (comp.type === 'VisualIndicator') return 'threshold ' + comp.options.threshold + ' bar';
+  if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
+    return 'mass ' + comp.options.massLoad + ' kg';
+  }
+  if (['ValveIsol', 'ProcessIsolationValve'].includes(comp.type)) {
+    return openClosed(comp) + rotationText;
+  }
+  if (['Manometer', 'ProcessManometer', 'ValveNret', 'Valve22m', 'Valve32b',
+       'Valve32m', 'Valve32r', 'Valve32p', 'Valve32ps', 'Valve52p'].includes(comp.type)) {
+    const parts = [];
+    if (comp.options.flipped !== undefined) parts.push(flippedText(comp));
+    if (comp.options.reference) parts.push('reference ' + comp.options.reference);
+    if (rotation) parts.push('rotation ' + rotation + ' deg');
+    return parts.length ? parts.join('; ') : '-';
+  }
+  if (rotation) return 'rotation ' + rotation + ' deg';
+  return '-';
+}
+
+
+function bomSignature(components) {
+  const labels = buildComponentLabelMap(components);
+  return JSON.stringify(equipmentComponents(components).map(comp => ({
+    type: comp.type,
+    stamp: comp.timestamp,
+    label: labels.get(comp),
+    options: comp.options,
+  })));
+}
+
+
+function renderPurchaseBom(components) {
+  const groups = new Map();
+  for (const comp of equipmentComponents(components)) {
+    if (!groups.has(comp.type)) {
+      groups.set(comp.type, {
+        prefix: componentLabelPrefix(comp.type),
+        type: comp.type,
+        name: componentTypeName(comp.type),
+        qty: 0,
+      });
+    }
+    groups.get(comp.type).qty += 1;
+  }
+  const rows = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
+  if (rows.length === 0) return '<p class="bom-empty">Aucun equipement.</p>';
+  return '<table><thead><tr><th>Code</th><th>Equipement</th><th>Qte</th></tr></thead><tbody>' +
+    rows.map(row => '<tr><td>' + htmlEscape(row.prefix) + '</td><td>' +
+      htmlEscape(row.name) + '</td><td>' + row.qty + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+
+function renderTechnicalBom(components) {
+  const labels = buildComponentLabelMap(components);
+  const groups = new Map();
+  for (const comp of equipmentComponents(components)) {
+    if (!groups.has(comp.type)) groups.set(comp.type, []);
+    groups.get(comp.type).push(comp);
+  }
+  const types = [...groups.keys()].sort((a, b) => componentTypeName(a).localeCompare(componentTypeName(b)));
+  if (types.length === 0) return '<p class="bom-empty">Aucun equipement.</p>';
+
+  return types.map(type => {
+    const comps = groups.get(type).sort((a, b) => labels.get(a).localeCompare(labels.get(b)));
+    return '<h3>' + htmlEscape(componentLabelPrefix(type) + ' - ' + componentTypeName(type)) + '</h3>' +
+      '<table><thead><tr><th>Label</th><th>Parametres</th></tr></thead><tbody>' +
+      comps.map(comp => '<tr><td>' + htmlEscape(labels.get(comp)) + '</td><td>' +
+        htmlEscape(componentTechnicalParams(comp)) + '</td></tr>').join('') +
+      '</tbody></table>';
+  }).join('');
+}
+
+
+function renderBomPanel(force=false) {
+  const panel = document.getElementById('bomPanel');
+  const content = document.getElementById('bomContent');
+  if (!panel || !content || typeof engine === 'undefined') return;
+
+  panel.classList.toggle('is-collapsed', bomCollapsed);
+  const signature = bomMode + '|' + bomCollapsed + '|' + bomSignature(engine.components);
+  if (!force && signature === bomRenderSignature) return;
+  bomRenderSignature = signature;
+
+  content.innerHTML = (bomMode === 'purchase')
+    ? renderPurchaseBom(engine.components)
+    : renderTechnicalBom(engine.components);
+}
+
+
+function initBomPanel() {
+  const panel = document.getElementById('bomPanel');
+  const toggle = document.getElementById('bomToggle');
+  if (!panel || !toggle) return;
+
+  toggle.addEventListener('click', () => {
+    bomCollapsed = !bomCollapsed;
+    toggle.textContent = bomCollapsed ? 'Afficher' : 'Masquer';
+    toggle.title = bomCollapsed ? 'Afficher la nomenclature' : 'Masquer la nomenclature';
+    renderBomPanel(true);
+    ui._resizeCanvas();
+    renderer.draw();
+  });
+
+  document.querySelectorAll('.bom-tab[data-bom-mode]').forEach(button => {
+    button.addEventListener('click', () => {
+      bomMode = button.dataset.bomMode;
+      document.querySelectorAll('.bom-tab[data-bom-mode]').forEach(tab =>
+        tab.classList.toggle('is-active', tab.dataset.bomMode === bomMode)
+      );
+      renderBomPanel(true);
+    });
+  });
+
+  renderBomPanel(true);
+}
+
 function createComponentByType(type, position, endPosition=position) {
   switch (type) {
     case 'Pipe': return new Pipe(position, endPosition);
@@ -5323,6 +5849,14 @@ class Renderer{
     for (const comp of this.engine.components) {
       comp.drawWithRotation(ctx);
     }
+
+    const labels = buildComponentLabelMap(this.engine.components);
+    for (const comp of this.engine.components) {
+      if (componentSupportsLabel(comp.type)) {
+        comp.drawUnitLabel(ctx, labels.get(comp));
+      }
+    }
+    renderBomPanel();
   }
 
   drawPosition(position) {
@@ -5398,9 +5932,11 @@ class UIController {
     const menu = document.querySelector('.menu');
     const sidebar = document.getElementById('toolSidebar');
     const toolbar = document.getElementById('modeToolbar');
+    const bomPanel = document.getElementById('bomPanel');
     const menuHeight = menu ? menu.offsetHeight : 35;
     const sidebarWidth = sidebar ? sidebar.offsetWidth : 260;
     const toolbarHeight = toolbar ? toolbar.offsetHeight : 54;
+    const bomWidth = bomPanel ? bomPanel.offsetWidth : 0;
 
     if (sidebar) {
       sidebar.style.top = menuHeight + 'px';
@@ -5409,11 +5945,15 @@ class UIController {
     if (toolbar) {
       toolbar.style.top = menuHeight + 'px';
       toolbar.style.left = sidebarWidth + 'px';
+      toolbar.style.right = bomWidth + 'px';
+    }
+    if (bomPanel) {
+      bomPanel.style.top = menuHeight + 'px';
     }
     canvas.style.left = sidebarWidth + 'px';
     canvas.style.top = (menuHeight + toolbarHeight) + 'px';
 
-    const width = (window.innerWidth - sidebarWidth)*canvasScale;
+    const width = (window.innerWidth - sidebarWidth - bomWidth)*canvasScale;
     const height = (window.innerHeight - menuHeight - toolbarHeight)*canvasScale;
     canvas.width  = (width < minCanvasWidth) ? minCanvasWidth : width;
     canvas.height = (height < minCanvasHeight) ? minCanvasHeight : height;
@@ -5432,6 +5972,9 @@ class UIController {
 
   _optionPrompts(comp) {
     const prompts = [];
+    if (componentSupportsLabel(comp.type)) {
+      prompts.push({key: 'label', message: 'Label (empty = auto):', value: forcedComponentLabel(comp)});
+    }
     if (comp.type === 'Text') {
       prompts.push({key: 'text', message: 'Text:'});
     }
@@ -5809,6 +6352,7 @@ function loadSchema(schematicJSON) {
       components.push(newcomp);
     }
   }
+  normalizeLoadedComponentLabels(components);
   return components;
 }
 
@@ -6283,6 +6827,7 @@ function firstSetupApp() {
   navigatorLang();
   loadExampleMenu();
   initToolPreviews();
+  initBomPanel();
   updateControlHighlights();
 
   let config = query_read();
@@ -6327,7 +6872,13 @@ function textPromptAssign(key, message, afterClose=null, value=null, type='text'
       }
       else {
         const text = textInput.value.trim();
-        if (text.length > 0) {
+        if (key === 'label') {
+          const result = assignForcedComponentLabel(componentEdit, text);
+          if (!result.ok) {
+            window.alert(result.message);
+          }
+        }
+        else if (text.length > 0) {
           componentEdit.options[key] = text;
           componentEdit.validateOptions();
         }
