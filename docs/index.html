@@ -1774,8 +1774,8 @@ function drawIsolationValveSymbol(ctx, comp, symbolColor) {
   const x = comp.x;
   const y = comp.y;
   const cy = y - 25;
-  const wheelX = x - 42;
-  const stateX = x + 42;
+  const wheelX = x - 30;
+  const stateX = x + 30;
 
   ctx.save();
   ctx.lineWidth = lineWidth;
@@ -1811,42 +1811,42 @@ function drawIsolationValveSymbol(ctx, comp, symbolColor) {
   ctx.fillStyle = symbolColor;
   ctx.beginPath();
   ctx.moveTo(x, cy);
-  ctx.lineTo(wheelX + 8, cy);
+  ctx.lineTo(wheelX + 7, cy);
   ctx.stroke();
 
   if (comp.options.closed) {
     ctx.beginPath();
-    ctx.arc(wheelX, cy, 8, 0, Math.PI * 2);
+    ctx.arc(wheelX, cy, 7, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(stateX - 10, cy - 10);
-    ctx.lineTo(stateX + 10, cy + 10);
-    ctx.moveTo(stateX - 10, cy + 10);
-    ctx.lineTo(stateX + 10, cy - 10);
+    ctx.moveTo(stateX - 9, cy - 9);
+    ctx.lineTo(stateX + 9, cy + 9);
+    ctx.moveTo(stateX - 9, cy + 9);
+    ctx.lineTo(stateX + 9, cy - 9);
     ctx.stroke();
   }
   else {
     ctx.beginPath();
     ctx.moveTo(wheelX, cy);
-    ctx.bezierCurveTo(wheelX - 7, cy - 4, wheelX - 7, cy - 18, wheelX, cy - 22);
-    ctx.bezierCurveTo(wheelX + 7, cy - 18, wheelX + 7, cy - 4, wheelX, cy);
+    ctx.bezierCurveTo(wheelX - 6, cy - 4, wheelX - 6, cy - 15, wheelX, cy - 19);
+    ctx.bezierCurveTo(wheelX + 6, cy - 15, wheelX + 6, cy - 4, wheelX, cy);
     ctx.moveTo(wheelX, cy);
-    ctx.bezierCurveTo(wheelX - 7, cy + 4, wheelX - 7, cy + 18, wheelX, cy + 22);
-    ctx.bezierCurveTo(wheelX + 7, cy + 18, wheelX + 7, cy + 4, wheelX, cy);
+    ctx.bezierCurveTo(wheelX - 6, cy + 4, wheelX - 6, cy + 15, wheelX, cy + 19);
+    ctx.bezierCurveTo(wheelX + 6, cy + 15, wheelX + 6, cy + 4, wheelX, cy);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(stateX, cy - 22);
-    ctx.lineTo(stateX, cy + 22);
-    ctx.moveTo(stateX, cy - 22);
-    ctx.lineTo(stateX - 5, cy - 13);
-    ctx.moveTo(stateX, cy - 22);
-    ctx.lineTo(stateX + 5, cy - 13);
-    ctx.moveTo(stateX, cy + 22);
-    ctx.lineTo(stateX - 5, cy + 13);
-    ctx.moveTo(stateX, cy + 22);
-    ctx.lineTo(stateX + 5, cy + 13);
+    ctx.moveTo(stateX, cy - 18);
+    ctx.lineTo(stateX, cy + 18);
+    ctx.moveTo(stateX, cy - 18);
+    ctx.lineTo(stateX - 5, cy - 10);
+    ctx.moveTo(stateX, cy - 18);
+    ctx.lineTo(stateX + 5, cy - 10);
+    ctx.moveTo(stateX, cy + 18);
+    ctx.lineTo(stateX - 5, cy + 10);
+    ctx.moveTo(stateX, cy + 18);
+    ctx.lineTo(stateX + 5, cy + 10);
     ctx.stroke();
   }
   ctx.restore();
@@ -1901,7 +1901,7 @@ class ProcessIsolationValve extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-58, this.y-52, this.x+56, this.y+4, pos);
+    return this.nearRect(this.x-44, this.y-49, this.x+44, this.y-1, pos);
   }
 
   draw(ctx) {
@@ -2405,7 +2405,7 @@ class ValveIsol extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-58, this.y-52, this.x+56, this.y+4, pos);
+    return this.nearRect(this.x-44, this.y-49, this.x+44, this.y-1, pos);
   }
 
   draw(ctx) {
