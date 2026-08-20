@@ -1511,6 +1511,7 @@ class ProcessIsolationValve extends ComponentBase {
     this.color2 = processDefaultColor;
     this.options = {
       closed: false,
+      rotate: 90,
     };
   }
 
@@ -2067,6 +2068,7 @@ class ValveIsol extends ComponentBase {
     this.color2 = defaultColor;
     this.options = {
       closed: false,
+      rotate: 90,
     };
   }
 
@@ -5239,10 +5241,12 @@ function toolPreviewConfig(type) {
     Pipe: {scale: 1, offsetX: 0, offsetY: 0},
     ProcessPipe: {scale: 1, offsetX: 0, offsetY: 0},
     Text: {scale: 0.9, offsetX: 0, offsetY: -1},
+    ValveIsol: {scale: 0.58, offsetX: -14, offsetY: 0},
     PressureReducer: {scale: 0.42, offsetX: 0, offsetY: 2},
     BackPressureRegulator: {scale: 0.42, offsetX: 0, offsetY: 2},
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
+    ProcessIsolationValve: {scale: 0.58, offsetX: -14, offsetY: 0},
     Cylinder1: {scale: 0.35, offsetX: -25, offsetY: 7},
     Cylinder1Out: {scale: 0.33, offsetX: -38, offsetY: 7},
     Cylinder2: {scale: 0.35, offsetX: -25, offsetY: 7},
