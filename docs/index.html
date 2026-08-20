@@ -162,10 +162,10 @@
   }
 
   .tool-button {
-    min-height: 62px;
+    min-height: 88px;
     padding: 6px 5px;
     display: grid;
-    grid-template-rows: 24px auto;
+    grid-template-rows: 54px auto;
     align-items: center;
     justify-items: center;
     gap: 3px;
@@ -182,6 +182,16 @@
     font-size: 11px;
     line-height: 1;
     background: #fdfdfd;
+  }
+
+  .tool-preview {
+    width: 104px;
+    min-width: 104px;
+    height: 52px;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
   }
 
   .tool-symbol.round {
@@ -535,6 +545,44 @@ let initPos = null;
 let endPos = null;
 let running = false;
 let globalLang = null;
+
+const componentToolTypes = {
+  cPipe: 'Pipe',
+  cPress: 'Compressor',
+  cManometer: 'Manometer',
+  cEscape: 'Escape',
+  cText: 'Text',
+  cValve22m: 'Valve22m',
+  cValve32b: 'Valve32b',
+  cValve32m: 'Valve32m',
+  cValve32r: 'Valve32r',
+  cRoller: 'Roller',
+  cValve32p: 'Valve32p',
+  cValve32ps: 'Valve32ps',
+  cValve42m: 'Valve42m',
+  cValve52m: 'Valve52m',
+  cValve52p: 'Valve52p',
+  cValveOr: 'ValveOr',
+  cValveAnd: 'ValveAnd',
+  cValveNret: 'ValveNret',
+  cValveFlow: 'ValveFlow',
+  cValveIsol: 'ValveIsol',
+  cPressureReducer: 'PressureReducer',
+  cBackPressureRegulator: 'BackPressureRegulator',
+  cFilter: 'PneumaticFilter',
+  cTestPort: 'TestPort',
+  cVisualIndicator: 'VisualIndicator',
+  cDifferentialPressureSwitch: 'DifferentialPressureSwitch',
+  cAirTank: 'AirTank',
+  cProcessReservoir: 'ProcessReservoir',
+  cProcessPipe: 'ProcessPipe',
+  cProcessIsolationValve: 'ProcessIsolationValve',
+  cProcessTestPort: 'ProcessTestPort',
+  cProcessManometer: 'ProcessManometer',
+  cCylinder1: 'Cylinder1',
+  cCylinder1Out: 'Cylinder1Out',
+  cCylinder2: 'Cylinder2',
+};
 let mousePosition = null;
 let stepTime = null;
 let simulationActive = false;
@@ -2222,13 +2270,11 @@ class PressureReducer extends ComponentBase {
     ctx.stroke();
 
     this.drawRectangle(ctx, this.x-18, this.y-16, this.x+18, this.y+16);
-    this.drawSpring(ctx, this.x-10, this.y+20);
 
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y-16);
     ctx.lineTo(this.x, this.y-34);
-    ctx.lineTo(flipped ? this.x+18 : this.x-18, this.y-34);
     ctx.stroke();
 
     ctx.beginPath();
@@ -2236,7 +2282,17 @@ class PressureReducer extends ComponentBase {
     ctx.lineTo(this.x-18, this.y-44);
     ctx.arc(this.x, this.y-44, 18, Math.PI, 0);
     ctx.lineTo(this.x+18, this.y-34);
-    ctx.lineTo(this.x+18, this.y-34);
+    ctx.lineTo(this.x-18, this.y-34);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-58);
+    ctx.lineTo(this.x-5, this.y-55);
+    ctx.lineTo(this.x+5, this.y-51);
+    ctx.lineTo(this.x-5, this.y-47);
+    ctx.lineTo(this.x+5, this.y-43);
+    ctx.lineTo(this.x-5, this.y-39);
+    ctx.lineTo(this.x, this.y-36);
     ctx.stroke();
 
     ctx.strokeStyle = senseColor;
@@ -2484,7 +2540,7 @@ class DifferentialPressureSwitch extends ComponentBase {
     this.type = 'DifferentialPressureSwitch';
     this.conductance = conductanceBase;
     this.active = false;
-    this.colorHP = defaultColor;
+    this.colorHP = processDefaultColor;
     this.color1 = defaultColor;
     this.color2 = defaultColor;
     this.options = {
@@ -2533,7 +2589,7 @@ class DifferentialPressureSwitch extends ComponentBase {
 
   reset() {
     this.active = false;
-    this.colorHP = defaultColor;
+    this.colorHP = processDefaultColor;
     this.color1 = defaultColor;
     this.color2 = defaultColor;
   }
@@ -2585,11 +2641,13 @@ class DifferentialPressureSwitch extends ComponentBase {
 
     this.drawRectangle(ctx, this.x-32, this.y-25, this.x+32, this.y+25);
 
+    ctx.strokeStyle = this.selected ? selectedColor : this.colorHP;
     ctx.beginPath();
     ctx.moveTo(this.x, mirrorY(-42));
     ctx.lineTo(this.x, mirrorY(-25));
     ctx.stroke();
 
+    ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.moveTo(this.x-20, mirrorY(-25));
     ctx.lineTo(this.x-20, mirrorY(-34));
@@ -2632,8 +2690,9 @@ class DifferentialPressureSwitch extends ComponentBase {
     const color = (this.selected) ? selectedColor : defaultColor;
     ctx.font = textFont;
     ctx.fillStyle = color;
+    ctx.textAlign = 'right';
+    ctx.fillText('HP', this.x-8, this.isFlipped() ? this.y+52 : this.y-48);
     ctx.textAlign = 'center';
-    ctx.fillText('HP', this.x, this.isFlipped() ? this.y+52 : this.y-48);
     ctx.fillText('1', this.x-50, this.y+18);
     ctx.fillText('2', this.x+50, this.y+18);
     ctx.fillText(this.options.pressure + ' bar', this.x, this.y+18);
@@ -5081,6 +5140,122 @@ class Engine {
 
 /*************************************************************************/
 
+function createComponentByType(type, position, endPosition=position) {
+  switch (type) {
+    case 'Pipe': return new Pipe(position, endPosition);
+    case 'ProcessPipe': return new ProcessPipe(position, endPosition);
+    case 'Compressor': return new Compressor(position);
+    case 'Manometer': return new Manometer(position);
+    case 'Escape': return new Escape(position);
+    case 'Text': return new Text(position);
+    case 'Cylinder1': return new Cylinder1(position);
+    case 'Cylinder1Out': return new Cylinder1Out(position);
+    case 'Cylinder2': return new Cylinder2(position);
+    case 'Valve22m': return new Valve22m(position);
+    case 'Valve32b': return new Valve32b(position);
+    case 'Valve32m': return new Valve32m(position);
+    case 'Valve32p': return new Valve32p(position);
+    case 'Valve32ps': return new Valve32ps(position);
+    case 'Valve32r': return new Valve32r(position);
+    case 'Roller': return new Roller(position);
+    case 'Valve42m': return new Valve42m(position);
+    case 'Valve52m': return new Valve52m(position);
+    case 'Valve52p': return new Valve52p(position);
+    case 'ValveNret': return new ValveNret(position);
+    case 'ValveFlow': return new ValveFlow(position);
+    case 'ValveIsol': return new ValveIsol(position);
+    case 'PressureReducer': return new PressureReducer(position);
+    case 'BackPressureRegulator': return new BackPressureRegulator(position);
+    case 'PneumaticFilter': return new PneumaticFilter(position);
+    case 'TestPort': return new TestPort(position);
+    case 'VisualIndicator': return new VisualIndicator(position);
+    case 'DifferentialPressureSwitch': return new DifferentialPressureSwitch(position);
+    case 'AirTank': return new AirTank(position);
+    case 'ProcessReservoir': return new ProcessReservoir(position);
+    case 'ProcessIsolationValve': return new ProcessIsolationValve(position);
+    case 'ProcessTestPort': return new ProcessTestPort(position);
+    case 'ProcessManometer': return new ProcessManometer(position);
+    case 'ValveOr': return new ValveOr(position);
+    case 'ValveAnd': return new ValveAnd(position);
+  }
+  return null;
+}
+
+
+function createPreviewComponent(type) {
+  if (type === 'Pipe' || type === 'ProcessPipe') {
+    return createComponentByType(type, {x:-42, y:0}, {x:42, y:0});
+  }
+  if (type === 'Text') {
+    return createComponentByType(type, {x:-18, y:0});
+  }
+  return createComponentByType(type, {x:0, y:0});
+}
+
+
+function toolPreviewConfig(type) {
+  const defaults = {scale: 0.48, offsetX: 0, offsetY: 0};
+  const configs = {
+    Pipe: {scale: 1, offsetX: 0, offsetY: 0},
+    ProcessPipe: {scale: 1, offsetX: 0, offsetY: 0},
+    Text: {scale: 0.9, offsetX: 0, offsetY: -1},
+    PressureReducer: {scale: 0.48, offsetX: 0, offsetY: 8},
+    BackPressureRegulator: {scale: 0.48, offsetX: 0, offsetY: 8},
+    DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
+    ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
+    Cylinder1: {scale: 0.42, offsetX: 0, offsetY: 0},
+    Cylinder1Out: {scale: 0.42, offsetX: 0, offsetY: 0},
+    Cylinder2: {scale: 0.42, offsetX: 0, offsetY: 0},
+  };
+  return {...defaults, ...(configs[type] || {})};
+}
+
+
+function drawToolPreview(canvas, type) {
+  const cssWidth = 104;
+  const cssHeight = 52;
+  const deviceScale = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssWidth * deviceScale);
+  canvas.height = Math.round(cssHeight * deviceScale);
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const comp = createPreviewComponent(type);
+  if (!comp) return;
+
+  const config = toolPreviewConfig(type);
+  ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, cssWidth, cssHeight);
+  ctx.save();
+  ctx.translate(cssWidth / 2 + config.offsetX, cssHeight / 2 + config.offsetY);
+  ctx.scale(config.scale, config.scale);
+  comp.drawWithRotation(ctx);
+  ctx.restore();
+}
+
+
+function initToolPreviews() {
+  document.querySelectorAll('.component-tool[data-action]').forEach(button => {
+    const type = componentToolTypes[button.dataset.action];
+    const symbol = button.querySelector('.tool-symbol');
+    if (!type || !symbol) return;
+
+    const preview = document.createElement('canvas');
+    preview.className = 'tool-symbol tool-preview';
+    preview.setAttribute('aria-hidden', 'true');
+    symbol.replaceWith(preview);
+    drawToolPreview(preview, type);
+  });
+}
+
+
+/*************************************************************************/
+
 class Renderer{
   constructor(canvas, engine){
     this.canvas = canvas;
@@ -5356,39 +5531,9 @@ class UIController {
     // Draw component mode
     if (drawMode === 'component') {
       let comp = null;
-      if (componentType === 'Compressor') comp = new Compressor(position);
-      if (componentType === 'Manometer') comp = new Manometer(position);
-      if (componentType === 'Escape') comp = new Escape(position);
-      if (componentType === 'Text') comp = new Text(position);
-      if (componentType === 'Cylinder1') comp = new Cylinder1(position);
-      if (componentType === 'Cylinder1Out') comp = new Cylinder1Out(position);
-      if (componentType === 'Cylinder2') comp = new Cylinder2(position);
-      if (componentType === 'Valve22m') comp = new Valve22m(position);
-      if (componentType === 'Valve32b') comp = new Valve32b(position);
-      if (componentType === 'Valve32m') comp = new Valve32m(position);
-      if (componentType === 'Valve32p') comp = new Valve32p(position);
-      if (componentType === 'Valve32ps') comp = new Valve32ps(position);
-      if (componentType === 'Valve32r') comp = new Valve32r(position);
-      if (componentType === 'Roller') comp = new Roller(position);
-      if (componentType === 'Valve42m') comp = new Valve42m(position);
-      if (componentType === 'Valve52m') comp = new Valve52m(position);
-      if (componentType === 'Valve52p') comp = new Valve52p(position);
-      if (componentType === 'ValveNret') comp = new ValveNret(position);
-      if (componentType === 'ValveFlow') comp = new ValveFlow(position);
-      if (componentType === 'ValveIsol') comp = new ValveIsol(position);
-      if (componentType === 'PressureReducer') comp = new PressureReducer(position);
-      if (componentType === 'BackPressureRegulator') comp = new BackPressureRegulator(position);
-      if (componentType === 'PneumaticFilter') comp = new PneumaticFilter(position);
-      if (componentType === 'TestPort') comp = new TestPort(position);
-      if (componentType === 'VisualIndicator') comp = new VisualIndicator(position);
-      if (componentType === 'DifferentialPressureSwitch') comp = new DifferentialPressureSwitch(position);
-      if (componentType === 'AirTank') comp = new AirTank(position);
-      if (componentType === 'ProcessReservoir') comp = new ProcessReservoir(position);
-      if (componentType === 'ProcessIsolationValve') comp = new ProcessIsolationValve(position);
-      if (componentType === 'ProcessTestPort') comp = new ProcessTestPort(position);
-      if (componentType === 'ProcessManometer') comp = new ProcessManometer(position);
-      if (componentType === 'ValveOr') comp = new ValveOr(position);
-      if (componentType === 'ValveAnd') comp = new ValveAnd(position);
+      if (!['Pipe', 'ProcessPipe'].includes(componentType)) {
+        comp = createComponentByType(componentType, position);
+      }
 
       // Draw Text
       if (componentType === 'Text') {
@@ -5404,9 +5549,7 @@ class UIController {
       if (['Pipe', 'ProcessPipe'].includes(componentType)) {
         if (initPos === null) {
           initPos = position;
-          editPipe = (componentType === 'ProcessPipe')
-            ? new ProcessPipe(initPos, initPos)
-            : new Pipe(initPos, initPos);
+          editPipe = createComponentByType(componentType, initPos, initPos);
           comp = editPipe;
           editPipe.color = (componentType === 'ProcessPipe') ? processDefaultColor : selectedColor;
         }
@@ -6093,6 +6236,7 @@ function firstSetupApp() {
   ui._resizeCanvas();
   navigatorLang();
   loadExampleMenu();
+  initToolPreviews();
   updateControlHighlights();
 
   let config = query_read();
