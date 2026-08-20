@@ -810,8 +810,8 @@ const componentLabelOffsets = {
   DifferentialPressureSwitch: {x:0, y:76},
   AirTank: {x:0, y:34},
   ProcessReservoir: {x:0, y:62},
-  ProcessIsolationValve: {x:30, y:-25},
-  ValveIsol: {x:30, y:-25},
+  ProcessIsolationValve: {x:68, y:-25},
+  ValveIsol: {x:68, y:-25},
   Cylinder1: {x:60, y:12},
   Cylinder1Out: {x:60, y:12},
   Cylinder2: {x:60, y:12},
@@ -1774,7 +1774,8 @@ function drawIsolationValveSymbol(ctx, comp, symbolColor) {
   const x = comp.x;
   const y = comp.y;
   const cy = y - 25;
-  const wheelX = x - 44;
+  const wheelX = x - 42;
+  const stateX = x + 42;
 
   ctx.save();
   ctx.lineWidth = lineWidth;
@@ -1785,25 +1786,24 @@ function drawIsolationValveSymbol(ctx, comp, symbolColor) {
 
   ctx.beginPath();
   ctx.moveTo(x, cy);
-  ctx.lineTo(x - 16, y - 7);
-  ctx.lineTo(x + 16, y - 7);
+  ctx.lineTo(x - 20, y - 5);
+  ctx.lineTo(x + 20, y - 5);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(x, cy);
-  ctx.lineTo(x - 16, y - 43);
-  ctx.lineTo(x + 16, y - 43);
+  ctx.lineTo(x - 20, y - 45);
+  ctx.lineTo(x + 20, y - 45);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  if (comp.options.closed) {
-    ctx.strokeStyle = comp.selected ? selectedColor : '#b00';
+  if (!comp.options.closed) {
     ctx.beginPath();
-    ctx.moveTo(x - 18, y - 44);
-    ctx.lineTo(x + 18, y - 6);
+    ctx.moveTo(x, y - 5);
+    ctx.lineTo(x, y - 45);
     ctx.stroke();
   }
 
@@ -1811,21 +1811,44 @@ function drawIsolationValveSymbol(ctx, comp, symbolColor) {
   ctx.fillStyle = symbolColor;
   ctx.beginPath();
   ctx.moveTo(x, cy);
-  ctx.lineTo(wheelX, cy);
+  ctx.lineTo(wheelX + 8, cy);
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(wheelX, cy);
-  ctx.bezierCurveTo(wheelX - 15, cy - 8, wheelX - 15, cy - 24, wheelX, cy - 24);
-  ctx.bezierCurveTo(wheelX + 15, cy - 24, wheelX + 15, cy - 8, wheelX, cy);
-  ctx.moveTo(wheelX, cy);
-  ctx.bezierCurveTo(wheelX - 15, cy + 8, wheelX - 15, cy + 24, wheelX, cy + 24);
-  ctx.bezierCurveTo(wheelX + 15, cy + 24, wheelX + 15, cy + 8, wheelX, cy);
-  ctx.stroke();
+  if (comp.options.closed) {
+    ctx.beginPath();
+    ctx.arc(wheelX, cy, 8, 0, Math.PI * 2);
+    ctx.stroke();
 
-  ctx.beginPath();
-  ctx.arc(wheelX, cy, 3, 0, Math.PI * 2);
-  ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(stateX - 10, cy - 10);
+    ctx.lineTo(stateX + 10, cy + 10);
+    ctx.moveTo(stateX - 10, cy + 10);
+    ctx.lineTo(stateX + 10, cy - 10);
+    ctx.stroke();
+  }
+  else {
+    ctx.beginPath();
+    ctx.moveTo(wheelX, cy);
+    ctx.bezierCurveTo(wheelX - 7, cy - 4, wheelX - 7, cy - 18, wheelX, cy - 22);
+    ctx.bezierCurveTo(wheelX + 7, cy - 18, wheelX + 7, cy - 4, wheelX, cy);
+    ctx.moveTo(wheelX, cy);
+    ctx.bezierCurveTo(wheelX - 7, cy + 4, wheelX - 7, cy + 18, wheelX, cy + 22);
+    ctx.bezierCurveTo(wheelX + 7, cy + 18, wheelX + 7, cy + 4, wheelX, cy);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(stateX, cy - 22);
+    ctx.lineTo(stateX, cy + 22);
+    ctx.moveTo(stateX, cy - 22);
+    ctx.lineTo(stateX - 5, cy - 13);
+    ctx.moveTo(stateX, cy - 22);
+    ctx.lineTo(stateX + 5, cy - 13);
+    ctx.moveTo(stateX, cy + 22);
+    ctx.lineTo(stateX - 5, cy + 13);
+    ctx.moveTo(stateX, cy + 22);
+    ctx.lineTo(stateX + 5, cy + 13);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -1878,7 +1901,7 @@ class ProcessIsolationValve extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-62, this.y-54, this.x+20, this.y+2, pos);
+    return this.nearRect(this.x-58, this.y-52, this.x+56, this.y+4, pos);
   }
 
   draw(ctx) {
@@ -2382,7 +2405,7 @@ class ValveIsol extends ComponentBase {
   }
 
   near(pos) {
-    return this.nearRect(this.x-62, this.y-54, this.x+20, this.y+2, pos);
+    return this.nearRect(this.x-58, this.y-52, this.x+56, this.y+4, pos);
   }
 
   draw(ctx) {
@@ -5729,12 +5752,12 @@ function toolPreviewConfig(type) {
     Pipe: {scale: 1, offsetX: 0, offsetY: 0},
     ProcessPipe: {scale: 1, offsetX: 0, offsetY: 0},
     Text: {scale: 0.9, offsetX: 0, offsetY: -1},
-    ValveIsol: {scale: 0.56, offsetX: -13, offsetY: 12},
+    ValveIsol: {scale: 0.44, offsetX: -11, offsetY: 0},
     PressureReducer: {scale: 0.42, offsetX: 0, offsetY: 2},
     BackPressureRegulator: {scale: 0.42, offsetX: 0, offsetY: 2},
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
-    ProcessIsolationValve: {scale: 0.56, offsetX: -13, offsetY: 12},
+    ProcessIsolationValve: {scale: 0.44, offsetX: -11, offsetY: 0},
     Cylinder1: {scale: 0.35, offsetX: -25, offsetY: 7},
     Cylinder1Out: {scale: 0.33, offsetX: -38, offsetY: 7},
     Cylinder2: {scale: 0.35, offsetX: -25, offsetY: 7},
