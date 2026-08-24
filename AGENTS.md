@@ -17,6 +17,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Si un croquis ou une demande explicite impose un prefixe de nomenclature, respecter ce prefixe meme s'il depasse la convention courte habituelle.
 - Les symboles doivent rester compacts : rapprocher les leviers, fleches, X et marqueurs d'etat du corps principal quand cela ne nuit pas a la lisibilite.
 - Garder la logique de simulation existante intacte quand la demande concerne uniquement le rendu graphique.
+- Pour les exports, conserver un export image simple et privilegier des formats vectoriels editables lorsque SVG/DXF sont demandes.
 - Pour les composants avec plusieurs etats visuels, le symbole doit refleter clairement l'etat simule.
 - Quand un composant supporte le flip, le dessin, les ports de connexion et la logique de simulation doivent rester coherents avec le cote fonctionnel reel.
 - Quand un symbole montre un port externe nomme, ce port doit etre modelise comme une vraie connexion simulee et ne doit pas etre remplace par un comportement interne implicite.

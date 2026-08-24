@@ -597,6 +597,14 @@
       <button class="mode-button" data-action="sContinue" data-sim-mode="sContinue"><span class="mode-icon">▶</span><span data-i18n="sContinue">Continue</span></button>
       <button class="mode-button" data-action="sReset" data-sim-mode="sReset"><span class="mode-icon">↺</span><span data-i18n="sReset">Reset</span></button>
     </div>
+
+    <div class="mode-group">
+      <span class="mode-group-title" data-i18n="exportMenu">Export</span>
+      <button class="mode-button" data-action="fSavePNG"><span class="mode-icon">▣</span><span data-i18n="fExportImage">Image</span></button>
+      <button class="mode-button" data-action="fSaveTransparentPNG"><span class="mode-icon">◫</span><span data-i18n="fSaveTransparentPNG">PNG transparent</span></button>
+      <button class="mode-button" data-action="fSaveSVG"><span class="mode-icon">SVG</span><span data-i18n="fSaveSVG">SVG</span></button>
+      <button class="mode-button" data-action="fSaveDXF"><span class="mode-icon">DXF</span><span data-i18n="fSaveDXF">DXF</span></button>
+    </div>
   </div>
 
   <aside id="bomPanel" class="bom-panel">
@@ -940,6 +948,11 @@ const translations = {
     fSaveStudent: 'Student',
     fSaveTeacher: 'Teacher',
     fSavePNG: 'Save Image',
+    fExportImage: 'Image',
+    fSaveTransparentPNG: 'Transparent PNG',
+    fSaveSVG: 'SVG',
+    fSaveDXF: 'DXF',
+    exportMenu: 'Export',
     fCompare: 'Compare Files',
     fAbout: 'About...',
     examplesMenu: 'Examples',
@@ -1023,6 +1036,11 @@ const translations = {
     fSaveStudent: 'Alumno',
     fSaveTeacher: 'Profesor',
     fSavePNG: 'Guardar Imagen',
+    fExportImage: 'Imagen',
+    fSaveTransparentPNG: 'PNG transparente',
+    fSaveSVG: 'SVG',
+    fSaveDXF: 'DXF',
+    exportMenu: 'Exportar',
     fCompare: 'Comparar Archivos',
     fAbout: 'Sobre...',
     examplesMenu: 'Ejemplos',
@@ -1134,6 +1152,9 @@ document.addEventListener("click", (e) => {
     fSaveStudent: () => { saveSchema('student'); },
     fSaveTeacher: () => { saveSchema('teacher'); },
     fSavePNG: () => { savePNG(); },
+    fSaveTransparentPNG: () => { saveTransparentPNG(); },
+    fSaveSVG: () => { saveSVG(); },
+    fSaveDXF: () => { saveDXF(); },
     fCompare: () => { compareFilesShow(); },
     enLang: () => { enLang(); },
     esLang: () => { esLang(); },
@@ -6602,6 +6623,475 @@ function initToolPreviews() {
 
 /*************************************************************************/
 
+function exportNumber(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Number(value.toFixed(3));
+}
+
+
+function matrixMultiply(a, b) {
+  return [
+    a[0]*b[0] + a[2]*b[1],
+    a[1]*b[0] + a[3]*b[1],
+    a[0]*b[2] + a[2]*b[3],
+    a[1]*b[2] + a[3]*b[3],
+    a[0]*b[4] + a[2]*b[5] + a[4],
+    a[1]*b[4] + a[3]*b[5] + a[5],
+  ];
+}
+
+
+function matrixPoint(m, x, y) {
+  return {
+    x: m[0]*x + m[2]*y + m[4],
+    y: m[1]*x + m[3]*y + m[5],
+  };
+}
+
+
+function exportXml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+
+function exportFontSize(font) {
+  const match = String(font || textFont).match(/(\d+(?:\.\d+)?)px/);
+  return match ? Number(match[1]) : 14;
+}
+
+
+function exportColorRgb(color) {
+  const value = String(color || '#000').trim().toLowerCase();
+  const named = {black:'#000000', white:'#ffffff', red:'#ff0000', green:'#008000', blue:'#0000ff'};
+  const normalized = named[value] || value;
+  let match = normalized.match(/^#([0-9a-f]{3})$/i);
+  if (match) {
+    return {
+      r: parseInt(match[1][0] + match[1][0], 16),
+      g: parseInt(match[1][1] + match[1][1], 16),
+      b: parseInt(match[1][2] + match[1][2], 16),
+      a: 1,
+    };
+  }
+  match = normalized.match(/^#([0-9a-f]{6})$/i);
+  if (match) {
+    return {
+      r: parseInt(match[1].slice(0, 2), 16),
+      g: parseInt(match[1].slice(2, 4), 16),
+      b: parseInt(match[1].slice(4, 6), 16),
+      a: 1,
+    };
+  }
+  match = normalized.match(/^rgba?\(([^)]+)\)$/);
+  if (match) {
+    const parts = match[1].split(',').map(part => Number(part.trim()));
+    return {
+      r: parts[0] || 0,
+      g: parts[1] || 0,
+      b: parts[2] || 0,
+      a: (parts[3] === undefined || isNaN(parts[3])) ? 1 : parts[3],
+    };
+  }
+  return {r:0, g:0, b:0, a:1};
+}
+
+
+function dxfColorIndex(color) {
+  const rgb = exportColorRgb(color);
+  if (rgb.a <= 0.01) return 8;
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const min = Math.min(rgb.r, rgb.g, rgb.b);
+  if (max - min < 35) return max > 220 ? 7 : 8;
+  if (rgb.r > rgb.g && rgb.r > rgb.b) return (rgb.g > 90) ? 30 : 1;
+  if (rgb.g > rgb.r && rgb.g > rgb.b) return 3;
+  if (rgb.b > rgb.r && rgb.b > rgb.g) return 5;
+  return 7;
+}
+
+
+class VectorExportContext {
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+    this.state = this.defaultState();
+    this.stack = [];
+    this.path = [];
+    this.currentPoint = null;
+  }
+
+  defaultState() {
+    return {
+      fillStyle: '#000',
+      strokeStyle: '#000',
+      lineWidth: lineWidth,
+      lineCap: 'butt',
+      lineJoin: 'miter',
+      font: textFont,
+      textAlign: 'start',
+      textBaseline: 'alphabetic',
+      transform: [1, 0, 0, 1, 0, 0],
+    };
+  }
+
+  get fillStyle() { return this.state.fillStyle; }
+  set fillStyle(value) { this.state.fillStyle = value; }
+  get strokeStyle() { return this.state.strokeStyle; }
+  set strokeStyle(value) { this.state.strokeStyle = value; }
+  get lineWidth() { return this.state.lineWidth; }
+  set lineWidth(value) { this.state.lineWidth = Number(value) || lineWidth; }
+  get lineCap() { return this.state.lineCap; }
+  set lineCap(value) { this.state.lineCap = value || 'butt'; }
+  get lineJoin() { return this.state.lineJoin; }
+  set lineJoin(value) { this.state.lineJoin = value || 'miter'; }
+  get font() { return this.state.font; }
+  set font(value) { this.state.font = value || textFont; }
+  get textAlign() { return this.state.textAlign; }
+  set textAlign(value) { this.state.textAlign = value || 'start'; }
+  get textBaseline() { return this.state.textBaseline; }
+  set textBaseline(value) { this.state.textBaseline = value || 'alphabetic'; }
+
+  stateCopy() {
+    return {
+      ...this.state,
+      transform: [...this.state.transform],
+    };
+  }
+
+  save() {
+    this.stack.push(this.stateCopy());
+  }
+
+  restore() {
+    if (this.stack.length > 0) {
+      this.state = this.stack.pop();
+    }
+  }
+
+  setTransform(a, b, c, d, e, f) {
+    this.state.transform = [a, b, c, d, e, f];
+  }
+
+  translate(x, y) {
+    this.state.transform = matrixMultiply(this.state.transform, [1, 0, 0, 1, x, y]);
+  }
+
+  rotate(angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    this.state.transform = matrixMultiply(this.state.transform, [cos, sin, -sin, cos, 0, 0]);
+  }
+
+  scale(x, y) {
+    this.state.transform = matrixMultiply(this.state.transform, [x, 0, 0, y, 0, 0]);
+  }
+
+  clearRect() {
+  }
+
+  beginPath() {
+    this.path = [];
+    this.currentPoint = null;
+  }
+
+  transformPoint(x, y) {
+    return matrixPoint(this.state.transform, x, y);
+  }
+
+  pushPathPoint(cmd, x, y) {
+    const point = this.transformPoint(x, y);
+    this.path.push({cmd, x:point.x, y:point.y});
+    this.currentPoint = {x, y};
+  }
+
+  moveTo(x, y) {
+    this.pushPathPoint('M', x, y);
+  }
+
+  lineTo(x, y) {
+    this.pushPathPoint('L', x, y);
+  }
+
+  closePath() {
+    this.path.push({cmd:'Z'});
+  }
+
+  arc(x, y, radius, startAngle, endAngle, anticlockwise=false) {
+    let delta = endAngle - startAngle;
+    if (!anticlockwise) {
+      while (delta < 0) delta += Math.PI*2;
+      if (delta > Math.PI*2) delta = Math.PI*2;
+    }
+    else {
+      while (delta > 0) delta -= Math.PI*2;
+      if (delta < -Math.PI*2) delta = -Math.PI*2;
+    }
+    const steps = Math.max(8, Math.ceil(Math.abs(delta) / (Math.PI / 18)));
+    for (let i = 0; i <= steps; i++) {
+      const angle = startAngle + delta * i / steps;
+      const px = x + radius * Math.cos(angle);
+      const py = y + radius * Math.sin(angle);
+      if (this.path.length === 0 && i === 0) {
+        this.moveTo(px, py);
+      }
+      else {
+        this.lineTo(px, py);
+      }
+    }
+  }
+
+  quadraticCurveTo(cpx, cpy, x, y) {
+    const start = this.currentPoint || {x:cpx, y:cpy};
+    const steps = 16;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const mt = 1 - t;
+      this.lineTo(
+        mt*mt*start.x + 2*mt*t*cpx + t*t*x,
+        mt*mt*start.y + 2*mt*t*cpy + t*t*y
+      );
+    }
+  }
+
+  bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
+    const start = this.currentPoint || {x:cp1x, y:cp1y};
+    const steps = 20;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const mt = 1 - t;
+      this.lineTo(
+        mt*mt*mt*start.x + 3*mt*mt*t*cp1x + 3*mt*t*t*cp2x + t*t*t*x,
+        mt*mt*mt*start.y + 3*mt*mt*t*cp1y + 3*mt*t*t*cp2y + t*t*t*y
+      );
+    }
+  }
+
+  clonePath() {
+    return this.path.map(item => ({...item}));
+  }
+
+  stroke() {
+    if (this.path.length) {
+      this.emitPath('stroke', this.clonePath(), this.stateCopy());
+    }
+  }
+
+  fill() {
+    if (this.path.length) {
+      this.emitPath('fill', this.clonePath(), this.stateCopy());
+    }
+  }
+
+  rectPath(x, y, width, height) {
+    const points = [
+      this.transformPoint(x, y),
+      this.transformPoint(x + width, y),
+      this.transformPoint(x + width, y + height),
+      this.transformPoint(x, y + height),
+    ];
+    return [
+      {cmd:'M', x:points[0].x, y:points[0].y},
+      {cmd:'L', x:points[1].x, y:points[1].y},
+      {cmd:'L', x:points[2].x, y:points[2].y},
+      {cmd:'L', x:points[3].x, y:points[3].y},
+      {cmd:'Z'},
+    ];
+  }
+
+  fillRect(x, y, width, height) {
+    this.emitPath('fill', this.rectPath(x, y, width, height), this.stateCopy());
+  }
+
+  strokeRect(x, y, width, height) {
+    this.emitPath('stroke', this.rectPath(x, y, width, height), this.stateCopy());
+  }
+
+  fillText(text, x, y) {
+    this.emitText(String(text), x, y, this.stateCopy());
+  }
+
+  measureText(text) {
+    return {width: String(text || '').length * exportFontSize(this.state.font) * 0.62};
+  }
+
+  emitPath() {
+  }
+
+  emitText() {
+  }
+}
+
+
+class SvgExportContext extends VectorExportContext {
+  constructor(width, height) {
+    super(width, height);
+    this.elements = [];
+  }
+
+  pathData(path) {
+    return path.map(item => {
+      if (item.cmd === 'Z') return 'Z';
+      return item.cmd + ' ' + exportNumber(item.x) + ' ' + exportNumber(item.y);
+    }).join(' ');
+  }
+
+  emitPath(mode, path, state) {
+    const d = this.pathData(path);
+    if (!d) return;
+    if (mode === 'fill') {
+      this.elements.push('<path d="' + d + '" fill="' + exportXml(state.fillStyle) +
+        '" stroke="none"/>');
+      return;
+    }
+    this.elements.push('<path d="' + d + '" fill="none" stroke="' +
+      exportXml(state.strokeStyle) + '" stroke-width="' + exportNumber(state.lineWidth) +
+      '" stroke-linecap="' + exportXml(state.lineCap) +
+      '" stroke-linejoin="' + exportXml(state.lineJoin) + '"/>');
+  }
+
+  emitText(text, x, y, state) {
+    const matrix = matrixMultiply(state.transform, [1, 0, 0, 1, x, y]);
+    const anchor = {center:'middle', right:'end', end:'end', left:'start', start:'start'}[state.textAlign] || 'start';
+    const baseline = {middle:'middle', top:'hanging', bottom:'text-after-edge'}[state.textBaseline] || 'alphabetic';
+    this.elements.push('<text x="0" y="0" transform="matrix(' +
+      matrix.map(exportNumber).join(' ') + ')" fill="' + exportXml(state.fillStyle) +
+      '" font-family="sans-serif" font-size="' + exportNumber(exportFontSize(state.font)) +
+      '" text-anchor="' + anchor + '" dominant-baseline="' + baseline + '">' +
+      exportXml(text) + '</text>');
+  }
+
+  toString() {
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + exportNumber(this.width) +
+      '" height="' + exportNumber(this.height) + '" viewBox="0 0 ' +
+      exportNumber(this.width) + ' ' + exportNumber(this.height) + '">\n' +
+      this.elements.join('\n') + '\n</svg>\n';
+  }
+}
+
+
+class DxfExportContext extends VectorExportContext {
+  constructor(width, height) {
+    super(width, height);
+    this.entities = [];
+  }
+
+  dxfPoint(point) {
+    return {x: exportNumber(point.x), y: exportNumber(-point.y)};
+  }
+
+  pathSubpaths(path) {
+    const subpaths = [];
+    let current = null;
+    for (const item of path) {
+      if (item.cmd === 'M') {
+        current = {points:[{x:item.x, y:item.y}], closed:false};
+        subpaths.push(current);
+      }
+      else if (item.cmd === 'L' && current) {
+        current.points.push({x:item.x, y:item.y});
+      }
+      else if (item.cmd === 'Z' && current) {
+        current.closed = true;
+      }
+    }
+    return subpaths;
+  }
+
+  addLine(a, b, color) {
+    const p1 = this.dxfPoint(a);
+    const p2 = this.dxfPoint(b);
+    this.entities.push([
+      '0','LINE','8','SCHEMA','62',String(dxfColorIndex(color)),
+      '10',String(p1.x),'20',String(p1.y),'30','0',
+      '11',String(p2.x),'21',String(p2.y),'31','0',
+    ].join('\n'));
+  }
+
+  addPolyline(points, closed, color) {
+    if (points.length < 2) return;
+    const lines = ['0','POLYLINE','8','SCHEMA','62',String(dxfColorIndex(color)),'66','1','70',closed ? '1' : '0'];
+    for (const point of points) {
+      const p = this.dxfPoint(point);
+      lines.push('0','VERTEX','8','SCHEMA','10',String(p.x),'20',String(p.y),'30','0');
+    }
+    lines.push('0','SEQEND');
+    this.entities.push(lines.join('\n'));
+  }
+
+  addSolid(points, color) {
+    if (points.length < 3) {
+      this.addPolyline(points, true, color);
+      return;
+    }
+    const p = points.slice(0, 4);
+    if (p.length === 3) p.push(p[2]);
+    const d = p.map(point => this.dxfPoint(point));
+    this.entities.push([
+      '0','SOLID','8','SCHEMA','62',String(dxfColorIndex(color)),
+      '10',String(d[0].x),'20',String(d[0].y),'30','0',
+      '11',String(d[1].x),'21',String(d[1].y),'31','0',
+      '12',String(d[2].x),'22',String(d[2].y),'32','0',
+      '13',String(d[3].x),'23',String(d[3].y),'33','0',
+    ].join('\n'));
+  }
+
+  emitPath(mode, path, state) {
+    for (const subpath of this.pathSubpaths(path)) {
+      if (mode === 'fill') {
+        if (subpath.closed && subpath.points.length <= 4) {
+          this.addSolid(subpath.points, state.fillStyle);
+        }
+        else {
+          this.addPolyline(subpath.points, subpath.closed, state.fillStyle);
+        }
+      }
+      else {
+        for (let i = 1; i < subpath.points.length; i++) {
+          this.addLine(subpath.points[i-1], subpath.points[i], state.strokeStyle);
+        }
+        if (subpath.closed && subpath.points.length > 2) {
+          this.addLine(subpath.points[subpath.points.length-1], subpath.points[0], state.strokeStyle);
+        }
+      }
+    }
+  }
+
+  emitText(text, x, y, state) {
+    const point = matrixPoint(state.transform, x, y);
+    const p = this.dxfPoint(point);
+    const rotation = -Math.atan2(state.transform[1], state.transform[0]) * 180 / Math.PI;
+    const safeText = text.replace(/[{}\r\n]/g, ' ');
+    this.entities.push([
+      '0','TEXT','8','TEXT','62',String(dxfColorIndex(state.fillStyle)),
+      '10',String(p.x),'20',String(p.y),'30','0',
+      '40',String(exportNumber(exportFontSize(state.font))),
+      '1',safeText,
+      '50',String(exportNumber(rotation)),
+    ].join('\n'));
+  }
+
+  toString() {
+    return [
+      '0','SECTION','2','HEADER','9','$ACADVER','1','AC1009','0','ENDSEC',
+      '0','SECTION','2','TABLES',
+      '0','TABLE','2','LAYER','70','2',
+      '0','LAYER','2','SCHEMA','70','0','62','7','6','CONTINUOUS',
+      '0','LAYER','2','TEXT','70','0','62','8','6','CONTINUOUS',
+      '0','ENDTAB','0','ENDSEC',
+      '0','SECTION','2','ENTITIES',
+      this.entities.join('\n'),
+      '0','ENDSEC','0','EOF',
+    ].join('\n') + '\n';
+  }
+}
+
+
+/*************************************************************************/
+
 class Renderer{
   constructor(canvas, engine){
     this.canvas = canvas;
@@ -6611,15 +7101,37 @@ class Renderer{
   }
 
   draw() {
-    const ctx = this.ctx;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.drawScene(this.ctx, {
+      background: 'white',
+      showOverlay: true,
+      updateBom: true,
+      width: this.canvas.width,
+      height: this.canvas.height,
+    });
+  }
 
-    ctx.textAlign = "start";
-    ctx.font = textFont;
-    ctx.fillStyle = '#aaa';
-    ctx.fillText('Picuino Pneumatic Simulator v' + programVersion, 8, 18);
-    this.drawPosition(mousePosition);
+  drawScene(ctx, options={}) {
+    const background = options.background || 'white';
+    const showOverlay = options.showOverlay !== false;
+    const updateBom = options.updateBom !== false;
+    const width = options.width || this.canvas.width;
+    const height = options.height || this.canvas.height;
+
+    if (background === 'white') {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, width, height);
+    }
+    else if (typeof ctx.clearRect === 'function') {
+      ctx.clearRect(0, 0, width, height);
+    }
+
+    if (showOverlay) {
+      ctx.textAlign = "start";
+      ctx.font = textFont;
+      ctx.fillStyle = '#aaa';
+      ctx.fillText('Picuino Pneumatic Simulator v' + programVersion, 8, 18);
+      this.drawPosition(mousePosition, ctx);
+    }
 
     for (const comp of this.engine.components) {
       comp.drawWithRotation(ctx);
@@ -6631,11 +7143,12 @@ class Renderer{
         comp.drawUnitLabel(ctx, labels.get(comp));
       }
     }
-    renderBomPanel();
+    if (updateBom) {
+      renderBomPanel();
+    }
   }
 
-  drawPosition(position) {
-    const ctx = this.ctx;
+  drawPosition(position, ctx=this.ctx) {
     if (this.engine.haveTeacherComp()) {
       ctx.fillStyle = '#fff';
     }
@@ -7252,21 +7765,13 @@ async function loadExampleMenu() {
 }
 
 
-async function savePNG(filename = "image.png") {
-  renderer.draw();
-
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-  if (!blob) {
-    console.error("Error generating PNG image.");
-    return;
-  }
-  
+async function saveBlob(blob, filename, types) {
   if ("showSaveFilePicker" in window) {
     // Chrome / Edge
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName: filename,
-        types: [{description: "PNG", accept: {"image/png": [".png"]}}]
+        types,
       });
       const writable = await handle.createWritable();
       await writable.write(blob);
@@ -7291,6 +7796,80 @@ async function savePNG(filename = "image.png") {
     document.body.removeChild(downloadLink);
     URL.revokeObjectURL(url);
   }
+}
+
+
+async function savePNG(filename = "image.png") {
+  renderer.draw();
+
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  if (!blob) {
+    console.error("Error generating PNG image.");
+    return;
+  }
+  await saveBlob(blob, filename, [{description: "PNG", accept: {"image/png": [".png"]}}]);
+}
+
+
+function exportCanvasSize() {
+  return {
+    width: canvas.width / canvasScale,
+    height: canvas.height / canvasScale,
+  };
+}
+
+
+async function saveTransparentPNG(filename = "neumatic-transparent.png") {
+  const offscreen = document.createElement('canvas');
+  offscreen.width = canvas.width;
+  offscreen.height = canvas.height;
+  const ctx = offscreen.getContext('2d');
+  ctx.scale(canvasScale, canvasScale);
+  const size = exportCanvasSize();
+  renderer.drawScene(ctx, {
+    background: 'transparent',
+    showOverlay: false,
+    updateBom: false,
+    width: size.width,
+    height: size.height,
+  });
+
+  const blob = await new Promise(resolve => offscreen.toBlob(resolve, "image/png"));
+  if (!blob) {
+    console.error("Error generating transparent PNG image.");
+    return;
+  }
+  await saveBlob(blob, filename, [{description: "PNG", accept: {"image/png": [".png"]}}]);
+}
+
+
+async function saveSVG(filename = "neumatic.svg") {
+  const size = exportCanvasSize();
+  const ctx = new SvgExportContext(size.width, size.height);
+  renderer.drawScene(ctx, {
+    background: 'transparent',
+    showOverlay: false,
+    updateBom: false,
+    width: size.width,
+    height: size.height,
+  });
+  const blob = new Blob([ctx.toString()], {type: "image/svg+xml;charset=utf-8"});
+  await saveBlob(blob, filename, [{description: "SVG", accept: {"image/svg+xml": [".svg"]}}]);
+}
+
+
+async function saveDXF(filename = "neumatic.dxf") {
+  const size = exportCanvasSize();
+  const ctx = new DxfExportContext(size.width, size.height);
+  renderer.drawScene(ctx, {
+    background: 'transparent',
+    showOverlay: false,
+    updateBom: false,
+    width: size.width,
+    height: size.height,
+  });
+  const blob = new Blob([ctx.toString()], {type: "application/dxf;charset=utf-8"});
+  await saveBlob(blob, filename, [{description: "DXF", accept: {"application/dxf": [".dxf"]}}]);
 }
 
 
