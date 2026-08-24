@@ -548,6 +548,7 @@
       <h2 data-i18n="processMenu">Process</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cProcessReservoir"><span class="tool-symbol">500</span><span class="tool-label" data-i18n="cProcessReservoir">Process reservoir</span></button>
+        <button class="tool-button component-tool" data-action="cPilotOperatedPressureReliefValve"><span class="tool-symbol">POPRV</span><span class="tool-label" data-i18n="cPilotOperatedPressureReliefValve">Pilot-operated PRV</span></button>
         <button class="tool-button component-tool" data-action="cProcessPipe"><span class="tool-symbol">━</span><span class="tool-label" data-i18n="cProcessPipe">Process pipe</span></button>
         <button class="tool-button component-tool" data-action="cProcessIsolationValve"><span class="tool-symbol">X</span><span class="tool-label" data-i18n="cProcessIsolationValve">Process isolation valve</span></button>
         <button class="tool-button component-tool" data-action="cProcessTestPort"><span class="tool-symbol round">T</span><span class="tool-label" data-i18n="cProcessTestPort">Process test port</span></button>
@@ -762,6 +763,7 @@ const componentToolTypes = {
   cDcsPilot: 'DcsPilot',
   cAirTank: 'AirTank',
   cProcessReservoir: 'ProcessReservoir',
+  cPilotOperatedPressureReliefValve: 'PilotOperatedPressureReliefValve',
   cProcessPipe: 'ProcessPipe',
   cProcessIsolationValve: 'ProcessIsolationValve',
   cProcessTestPort: 'ProcessTestPort',
@@ -799,6 +801,7 @@ const componentLabelPrefixes = {
   DcsPilot: 'DCS',
   AirTank: 'ATK',
   ProcessReservoir: 'PTK',
+  PilotOperatedPressureReliefValve: 'POPRV',
   ProcessIsolationValve: 'PIV',
   ProcessTestPort: 'PTP',
   ProcessManometer: 'PMG',
@@ -835,6 +838,7 @@ const componentTypeNames = {
   DcsPilot: 'DCS pilot',
   AirTank: 'Air tank',
   ProcessReservoir: 'Process tank',
+  PilotOperatedPressureReliefValve: 'Pilot-operated pressure relief valve',
   ProcessIsolationValve: 'Process isolation valve',
   ProcessTestPort: 'Process test port',
   ProcessManometer: 'Process manometer',
@@ -887,6 +891,7 @@ const componentLabelBounds = {
   DcsPilot: {left:-70, top:-80, right:70, bottom:74},
   AirTank: {left:-38, top:-24, right:38, bottom:24},
   ProcessReservoir: {left:-58, top:-58, right:58, bottom:34},
+  PilotOperatedPressureReliefValve: {left:-78, top:-88, right:78, bottom:82},
   ProcessIsolationValve: {left:-44, top:-49, right:44, bottom:-1},
   ProcessTestPort: {left:-18, top:-38, right:18, bottom:0},
   ProcessManometer: {left:-20, top:-48, right:20, bottom:8},
@@ -960,6 +965,7 @@ const translations = {
     cDcsPilot: 'DCS pilot',
     cAirTank: 'Air tank',
     cProcessReservoir: 'Process reservoir',
+    cPilotOperatedPressureReliefValve: 'Pilot-operated PRV',
     cProcessPipe: 'Process pipe',
     cProcessIsolationValve: 'Process isolation valve',
     cProcessTestPort: 'Process test port',
@@ -1040,6 +1046,7 @@ const translations = {
     cDcsPilot: 'Piloto DCS',
     cAirTank: 'Depósito de aire',
     cProcessReservoir: 'Depósito de proceso',
+    cPilotOperatedPressureReliefValve: 'Válvula POPRV',
     cProcessPipe: 'Tubería de proceso',
     cProcessIsolationValve: 'Válvula de aislamiento de proceso',
     cProcessTestPort: 'Puerto de prueba de proceso',
@@ -1147,6 +1154,7 @@ document.addEventListener("click", (e) => {
     cDcsPilot: () => { simulationStop(); drawMode='component'; componentType='DcsPilot'; },
     cAirTank: () => { simulationStop(); drawMode='component'; componentType='AirTank'; },
     cProcessReservoir: () => { simulationStop(); drawMode='component'; componentType='ProcessReservoir'; },
+    cPilotOperatedPressureReliefValve: () => { simulationStop(); drawMode='component'; componentType='PilotOperatedPressureReliefValve'; },
     cProcessPipe: () => { simulationStop(); drawMode='component'; componentType='ProcessPipe'; },
     cProcessIsolationValve: () => { simulationStop(); drawMode='component'; componentType='ProcessIsolationValve'; },
     cProcessTestPort: () => { simulationStop(); drawMode='component'; componentType='ProcessTestPort'; },
@@ -3455,6 +3463,243 @@ class ProcessReservoir extends ComponentBase {
 }
 
 
+class PilotOperatedPressureReliefValve extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'PilotOperatedPressureReliefValve';
+    this.open = false;
+    this.reliefOffset = 0;
+    this.lastAppliedOffset = 0;
+    this.lastEffectivePressure = null;
+    this.colorI = processDefaultColor;
+    this.colorP = processDefaultColor;
+    this.colorC = processDefaultColor;
+    this.options = {
+      ratioPercent: 70,
+      reliefRate: -1,
+    };
+  }
+
+  validateOptions() {
+    this.options.ratioPercent = Number(this.options.ratioPercent);
+    if (isNaN(this.options.ratioPercent))
+      this.options.ratioPercent = 70;
+    if (this.options.ratioPercent > 100)
+      this.options.ratioPercent = 100;
+    if (this.options.ratioPercent < 0)
+      this.options.ratioPercent = 0;
+
+    this.options.reliefRate = Number(this.options.reliefRate);
+    if (isNaN(this.options.reliefRate))
+      this.options.reliefRate = -1;
+    if (this.options.reliefRate > 0)
+      this.options.reliefRate = -this.options.reliefRate;
+  }
+
+  vias() {
+    const viaI = {x:this.x, y:this.y+70, domain: 'process'};
+    const viaP = {x:this.x-70, y:this.y+40, domain: 'process'};
+    const viaC = {x:this.x, y:this.y-80, domain: 'process'};
+    return this.rotateVias([viaI, viaP, viaC]);
+  }
+
+  reset() {
+    this.open = false;
+    this.reliefOffset = 0;
+    this.lastAppliedOffset = 0;
+    this.lastEffectivePressure = null;
+    this.colorI = processDefaultColor;
+    this.colorP = processDefaultColor;
+    this.colorC = processDefaultColor;
+  }
+
+  setProcessPressure(node, pressure) {
+    node.pressure = Math.max(0, pressure);
+    node.mass = node.pressure * node.volume;
+  }
+
+  copyInputToPilot(nodeI, nodeP, pressure=nodeI.pressure) {
+    nodeP.processPressureMin = nodeI.processPressureMin;
+    nodeP.processPressureMax = nodeI.processPressureMax;
+    this.setProcessPressure(nodeP, pressure);
+  }
+
+  updateColors(nodeI, nodeP, nodeC) {
+    this.colorI = this.colorProcessPressure(nodeI.pressure, nodeI.processPressureMin, nodeI.processPressureMax);
+    this.colorP = this.colorProcessPressure(nodeP.pressure, nodeP.processPressureMin, nodeP.processPressureMax);
+    this.colorC = this.colorProcessPressure(nodeC.pressure, nodeC.processPressureMin, nodeC.processPressureMax);
+  }
+
+  update(ctx, engine, dt) {
+    const [viaI, viaP, viaC] = this.vias();
+    const nodeI = engine.findNode(viaI);
+    const nodeP = engine.findNode(viaP);
+    const nodeC = engine.findNode(viaC);
+    this.syncProcessColorRange(nodeI, nodeP);
+
+    const threshold = (this.options.ratioPercent / 100) * Math.max(0, nodeI.pressure);
+    this.open = nodeC.pressure < threshold;
+
+    if (!this.open) {
+      this.reliefOffset = 0;
+      this.lastAppliedOffset = 0;
+      this.lastEffectivePressure = null;
+    }
+
+    this.copyInputToPilot(nodeI, nodeP);
+    this.updateColors(nodeI, nodeP, nodeC);
+  }
+
+  postUpdate(ctx, engine, dt) {
+    const [viaI, viaP, viaC] = this.vias();
+    const nodeI = engine.findNode(viaI);
+    const nodeP = engine.findNode(viaP);
+    const nodeC = engine.findNode(viaC);
+    this.syncProcessColorRange(nodeI, nodeP);
+
+    if (!this.open) {
+      this.reliefOffset = 0;
+      this.lastAppliedOffset = 0;
+      this.lastEffectivePressure = null;
+      this.copyInputToPilot(nodeI, nodeP);
+      this.updateColors(nodeI, nodeP, nodeC);
+      return;
+    }
+
+    this.reliefOffset += this.options.reliefRate * dt;
+    if (this.reliefOffset > 0) {
+      this.reliefOffset = 0;
+    }
+
+    const basePressure = nodeI.pressure;
+    const deltaOffset = this.reliefOffset - this.lastAppliedOffset;
+    const sourceWasReset = this.lastEffectivePressure === null ||
+      Math.abs(nodeI.pressure - this.lastEffectivePressure) > 0.001;
+    const effectivePressure = Math.max(
+      0,
+      sourceWasReset ? basePressure + this.reliefOffset : basePressure + deltaOffset
+    );
+
+    this.setProcessPressure(nodeI, effectivePressure);
+    this.copyInputToPilot(nodeI, nodeP, effectivePressure);
+    this.lastAppliedOffset = this.reliefOffset;
+    this.lastEffectivePressure = effectivePressure;
+    this.updateColors(nodeI, nodeP, nodeC);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-78, this.y-88, this.x+78, this.y+82, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x, this.y+70, 0, -20, this.colorI);
+    this.drawPort(ctx, this.x-70, this.y+40, 26, 0, this.colorP);
+    this.drawPort(ctx, this.x, this.y-80, 0, 20, this.colorC);
+
+    const color = (this.selected) ? selectedColor : processDefaultColor;
+    ctx.save();
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = color;
+    ctx.fillStyle = '#fff';
+
+    this.drawPoprvActuator(ctx, color);
+    this.drawPoprvValveBody(ctx, color);
+    this.drawPoprvLabels(ctx, color);
+    ctx.restore();
+  }
+
+  drawPoprvActuator(ctx, color) {
+    const x = this.x;
+    const y = this.y;
+    const pistonY = this.open ? y-47 : y-43;
+
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x-45, y-60);
+    ctx.lineTo(x+45, y-60);
+    ctx.lineTo(x+45, y-28);
+    ctx.moveTo(x-45, y-60);
+    ctx.lineTo(x-45, y-28);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x-37, pistonY);
+    ctx.lineTo(x+37, pistonY);
+    ctx.moveTo(x-37, pistonY-5);
+    ctx.lineTo(x-37, pistonY+5);
+    ctx.moveTo(x+37, pistonY-5);
+    ctx.lineTo(x+37, pistonY+5);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x, pistonY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+
+  drawPoprvValveBody(ctx, color) {
+    const x = this.x;
+    const y = this.y;
+
+    ctx.strokeStyle = this.selected ? selectedColor : this.colorP;
+    ctx.beginPath();
+    ctx.moveTo(x-44, y+40);
+    ctx.lineTo(x, y+40);
+    ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x-23, y+50);
+    ctx.lineTo(x+23, y+50);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    if (this.open) {
+      ctx.lineTo(x+66, y-33);
+      ctx.lineTo(x+66, y+33);
+    }
+    else {
+      ctx.lineTo(x+54, y-24);
+      ctx.lineTo(x+54, y+24);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    if (this.open) {
+      ctx.beginPath();
+      for (let i = 1; i <= 4; i++) {
+        const radius = 10 + i * 9;
+        ctx.moveTo(x+8+i*10, y-radius*0.55);
+        ctx.quadraticCurveTo(x+22+i*9, y, x+8+i*10, y+radius*0.55);
+      }
+      ctx.moveTo(x+75, y-36);
+      ctx.quadraticCurveTo(x+92, y, x+75, y+36);
+      ctx.stroke();
+    }
+  }
+
+  drawPoprvLabels(ctx, color) {
+    ctx.font = textFont;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.fillText('C', this.x+9, this.y-75);
+    ctx.textAlign = 'right';
+    ctx.fillText('P', this.x-76, this.y+37);
+    ctx.fillText('I', this.x-8, this.y+76);
+    ctx.textAlign = 'start';
+  }
+}
+
+
 class ValveOr extends ComponentBase {
   constructor(pos) {
     super(pos);
@@ -5703,6 +5948,11 @@ class Engine {
     for (const comp of this.components) {
       comp.update(this.ctx, this, dt);
     }
+    for (const comp of this.components) {
+      if (typeof comp.postUpdate === 'function') {
+        comp.postUpdate(this.ctx, this, dt);
+      }
+    }
   }
 
   createNodes() {
@@ -5966,6 +6216,9 @@ function componentTechnicalParams(comp) {
     return 'min ' + comp.options.pressureMin + ' bar; max ' + comp.options.pressureMax +
       ' bar; period ' + comp.options.period + ' s';
   }
+  if (comp.type === 'PilotOperatedPressureReliefValve') {
+    return 'ratio ' + comp.options.ratioPercent + '%; relief ' + comp.options.reliefRate + ' bar/s';
+  }
   if (comp.type === 'VisualIndicator') return 'threshold ' + comp.options.threshold + ' bar';
   if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
     return 'mass ' + comp.options.massLoad + ' kg; ' + flippedText(comp);
@@ -6116,6 +6369,7 @@ function createComponentByType(type, position, endPosition=position) {
     case 'DcsPilot': return new DcsPilot(position);
     case 'AirTank': return new AirTank(position);
     case 'ProcessReservoir': return new ProcessReservoir(position);
+    case 'PilotOperatedPressureReliefValve': return new PilotOperatedPressureReliefValve(position);
     case 'ProcessIsolationValve': return new ProcessIsolationValve(position);
     case 'ProcessTestPort': return new ProcessTestPort(position);
     case 'ProcessManometer': return new ProcessManometer(position);
@@ -6149,6 +6403,7 @@ function toolPreviewConfig(type) {
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
     DcsPilot: {scale: 0.32, offsetX: 0, offsetY: 1},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
+    PilotOperatedPressureReliefValve: {scale: 0.29, offsetX: -1, offsetY: 1},
     ProcessIsolationValve: {scale: 0.44, offsetX: -11, offsetY: 0},
     Cylinder1: {scale: 0.35, offsetX: -25, offsetY: 7},
     Cylinder1Out: {scale: 0.33, offsetX: -38, offsetY: 7},
@@ -6382,6 +6637,10 @@ class UIController {
       prompts.push({key: 'pressureMin', message: 'Process pressure min (0 - ' + processPressureMax + ' bar):'});
       prompts.push({key: 'pressureMax', message: 'Process pressure max (0 - ' + processPressureMax + ' bar):'});
       prompts.push({key: 'period', message: 'Period (0.1 - 3600 s):'});
+    }
+    if (comp.type === 'PilotOperatedPressureReliefValve') {
+      prompts.push({key: 'ratioPercent', message: 'Valve ratio (0 - 100 %):'});
+      prompts.push({key: 'reliefRate', message: 'Open relief rate (bar/s, stored negative):'});
     }
     if (['Valve32r', 'Roller'].includes(comp.type)) {
       prompts.push({key: 'reference', message: 'Reference:'});
@@ -6720,6 +6979,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'DcsPilot') newcomp = new DcsPilot({x:comp.x, y:comp.y});
     if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessReservoir') newcomp = new ProcessReservoir({x:comp.x, y:comp.y});
+    if (comp.type === 'PilotOperatedPressureReliefValve') newcomp = new PilotOperatedPressureReliefValve({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessIsolationValve') newcomp = new ProcessIsolationValve({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessTestPort') newcomp = new ProcessTestPort({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessManometer') newcomp = new ProcessManometer({x:comp.x, y:comp.y});
