@@ -3547,17 +3547,27 @@ class Cylinder1 extends ComponentBase {
     this.color1w = '#fff';
     this.options = {
       massLoad: 5,
+      flipped: false,
     }
     this.frictionStatic = 0.8 * (this.options.massLoad + this.massRod); // kgf
     this.frictionDynamic = 0.6 * (this.options.massLoad + this.massRod); // kgf
   }
 
   vias() {
-    const via1 = {x:this.x, y:this.y};
+    const via1 = {x:this.isFlipped() ? this.x+110 : this.x, y:this.y};
     return this.rotateVias([via1]);
   }
 
+  isFlipped() {
+    return this.options.flipped === true || this.options.flipped === 'true';
+  }
+
+  flip() {
+    this.options.flipped = !this.isFlipped();
+  }
+
   validateOptions() {
+    this.options.flipped = (this.options.flipped === true || this.options.flipped === 'true');
     this.options.massLoad = Number(this.options.massLoad);
     if (isNaN(this.options.massLoad))
       this.options.massLoad = 0;
@@ -3675,6 +3685,24 @@ class Cylinder1 extends ComponentBase {
   }
 
   draw(ctx) {
+    if (this.isFlipped()) {
+      this.drawFlipped(ctx, () => this.drawUnflipped(ctx));
+      return;
+    }
+    this.drawUnflipped(ctx);
+  }
+
+  drawFlipped(ctx, drawCallback) {
+    const centerX = this.x + 55;
+    ctx.save();
+    ctx.translate(centerX, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-centerX, 0);
+    drawCallback();
+    ctx.restore();
+  }
+
+  drawUnflipped(ctx) {
     this.drawPort(ctx, this.x, this.y, 0, -10, this.color1);
     this.drawPressure(ctx, this.x-5, this.y-40);
     this.drawCamera(ctx, this.x-5, this.y-40, this.x+115, this.y-10);
@@ -3748,7 +3776,7 @@ class Cylinder1Out extends Cylinder1 {
   }
 
   vias() {
-    const via1 = {x:this.x+110, y:this.y};
+    const via1 = {x:this.isFlipped() ? this.x : this.x+110, y:this.y};
     return this.rotateVias([via1]);
   }
 
@@ -3846,6 +3874,14 @@ class Cylinder1Out extends Cylinder1 {
   }
 
   draw(ctx) {
+    if (this.isFlipped()) {
+      this.drawFlipped(ctx, () => this.drawUnflipped(ctx));
+      return;
+    }
+    this.drawUnflipped(ctx);
+  }
+
+  drawUnflipped(ctx) {
     this.drawPort(ctx, this.x+110, this.y, 0, -10, this.color1);
     this.drawPressure(ctx);
     this.drawCamera(ctx, this.x-5, this.y-40, this.x+115, this.y-10);
@@ -3893,18 +3929,30 @@ class Cylinder2 extends ComponentBase {
     this.color2w = '#fff';
     this.options = {
       massLoad: 5,
+      flipped: false,
     }
     this.frictionStatic = 0.8 * (this.options.massLoad+ this.massRod); // kgf
     this.frictionDynamic = 0.6 * (this.options.massLoad+ this.massRod); // kgf
   }
 
   vias() {
-    const via1 = {x:this.x, y:this.y};
-    const via2 = {x:this.x+110, y:this.y};
+    const viaLeft = {x:this.x, y:this.y};
+    const viaRight = {x:this.x+110, y:this.y};
+    const via1 = this.isFlipped() ? viaRight : viaLeft;
+    const via2 = this.isFlipped() ? viaLeft : viaRight;
     return this.rotateVias([via1, via2]);
   }
 
+  isFlipped() {
+    return this.options.flipped === true || this.options.flipped === 'true';
+  }
+
+  flip() {
+    this.options.flipped = !this.isFlipped();
+  }
+
   validateOptions() {
+    this.options.flipped = (this.options.flipped === true || this.options.flipped === 'true');
     this.options.massLoad = Number(this.options.massLoad);
     if (isNaN(this.options.massLoad))
       this.options.massLoad = 10;
@@ -4052,6 +4100,20 @@ class Cylinder2 extends ComponentBase {
   }
 
   draw(ctx) {
+    if (this.isFlipped()) {
+      const centerX = this.x + 55;
+      ctx.save();
+      ctx.translate(centerX, 0);
+      ctx.scale(-1, 1);
+      ctx.translate(-centerX, 0);
+      this.drawUnflipped(ctx);
+      ctx.restore();
+      return;
+    }
+    this.drawUnflipped(ctx);
+  }
+
+  drawUnflipped(ctx) {
     this.drawPort(ctx, this.x, this.y, 0, -10, this.color1);
     this.drawPort(ctx, this.x+110, this.y, 0, -10, this.color2);
     this.drawPressure1(ctx);
@@ -5724,7 +5786,7 @@ function componentTechnicalParams(comp) {
   }
   if (comp.type === 'VisualIndicator') return 'threshold ' + comp.options.threshold + ' bar';
   if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
-    return 'mass ' + comp.options.massLoad + ' kg';
+    return 'mass ' + comp.options.massLoad + ' kg; ' + flippedText(comp);
   }
   if (['ValveIsol', 'ProcessIsolationValve'].includes(comp.type)) {
     return openClosed(comp) + rotationText;
@@ -6224,8 +6286,10 @@ class UIController {
           if (['Manometer', 'ProcessManometer', 'ValveNret', 'Valve22m', 'Valve32b',
                'Valve32m', 'Valve32r',  'Valve32p', 'Valve32ps',
                'PressureReducer', 'BackPressureRegulator',
-               'DifferentialPressureSwitch'].includes(comp.type)) {
+               'DifferentialPressureSwitch',
+               'Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
             comp.flip();
+            this.engine.createNodes();
             break;
           }
         }

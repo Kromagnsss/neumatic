@@ -17,6 +17,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Les symboles doivent rester compacts : rapprocher les leviers, fleches, X et marqueurs d'etat du corps principal quand cela ne nuit pas a la lisibilite.
 - Garder la logique de simulation existante intacte quand la demande concerne uniquement le rendu graphique.
 - Pour les composants avec plusieurs etats visuels, le symbole doit refleter clairement l'etat simule.
+- Quand un composant supporte le flip, le dessin, les ports de connexion et la logique de simulation doivent rester coherents avec le cote fonctionnel reel.
 - Appliquer les memes conventions aux variantes pneumatiques et process quand elles representent le meme type d'equipement.
 - Preserver la compatibilite des anciens fichiers sauvegardes quand des options sont ajoutees.
 
