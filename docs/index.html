@@ -397,6 +397,34 @@
     color: #69737d;
   }
 
+  .label-position-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 34px);
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .label-position-grid label {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #b6bec6;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  .label-position-grid label:has(input:checked) {
+    background: #dbeafe;
+    border-color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px #1d4ed8;
+  }
+
+  .label-position-grid input {
+    margin: 0;
+  }
+
   dialog {
     margin-top: 40px;
     margin-bottom: auto;
@@ -589,6 +617,17 @@
         <input type="checkbox" id="checkboxInput">
         <span id="checkboxText">Enabled</span>
       </label>
+      <div id="labelPositionGrid" class="label-position-grid" style="display:none;">
+        <label title="Top left"><input type="checkbox" name="labelPosition" value="tl"></label>
+        <label title="Top center"><input type="checkbox" name="labelPosition" value="tc"></label>
+        <label title="Top right"><input type="checkbox" name="labelPosition" value="tr"></label>
+        <label title="Middle left"><input type="checkbox" name="labelPosition" value="ml"></label>
+        <label title="Center"><input type="checkbox" name="labelPosition" value="mc"></label>
+        <label title="Middle right"><input type="checkbox" name="labelPosition" value="mr"></label>
+        <label title="Bottom left"><input type="checkbox" name="labelPosition" value="bl"></label>
+        <label title="Bottom center"><input type="checkbox" name="labelPosition" value="bc"></label>
+        <label title="Bottom right"><input type="checkbox" name="labelPosition" value="br"></label>
+      </div>
       <div style="margin-top: 16px;">
         <button id="confirmBtn" value="default">Accept</button>
         <button id="cancelBtn" value="cancel" formnovalidate>Cancel</button>
@@ -800,23 +839,55 @@ const componentTypeNames = {
   Cylinder2: 'Double-acting cylinder',
 };
 
-const componentLabelOffsets = {
-  Compressor: {x:0, y:48},
-  Manometer: {x:0, y:34},
-  ProcessManometer: {x:0, y:34},
-  Escape: {x:0, y:40},
-  PressureReducer: {x:0, y:62},
-  BackPressureRegulator: {x:0, y:62},
-  DifferentialPressureSwitch: {x:0, y:76},
-  AirTank: {x:0, y:34},
-  ProcessReservoir: {x:0, y:62},
-  ProcessIsolationValve: {x:68, y:-25},
-  ValveIsol: {x:68, y:-25},
-  Cylinder1: {x:60, y:12},
-  Cylinder1Out: {x:60, y:12},
-  Cylinder2: {x:60, y:12},
-  Roller: {x:0, y:28},
-  Text: {x:0, y:0},
+const labelPositionDefault = 'bc';
+const labelPositionValues = ['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br'];
+const labelPositionNames = {
+  tl: 'Top left',
+  tc: 'Top center',
+  tr: 'Top right',
+  ml: 'Middle left',
+  mc: 'Center',
+  mr: 'Middle right',
+  bl: 'Bottom left',
+  bc: 'Bottom center',
+  br: 'Bottom right',
+};
+const labelMargin = 10;
+
+const componentLabelBounds = {
+  Compressor: {left:-18, top:5, right:18, bottom:32},
+  Manometer: {left:-20, top:-48, right:20, bottom:8},
+  ProcessManometer: {left:-20, top:-48, right:20, bottom:8},
+  Escape: {left:-18, top:0, right:18, bottom:24},
+  Valve22m: {left:-65, top:-42, right:65, bottom:2},
+  Valve32b: {left:-70, top:-44, right:60, bottom:2},
+  Valve32m: {left:-70, top:-44, right:60, bottom:2},
+  Valve32r: {left:-55, top:-45, right:60, bottom:2},
+  Roller: {left:-20, top:-45, right:20, bottom:5},
+  Valve32p: {left:-70, top:-44, right:60, bottom:2},
+  Valve32ps: {left:-70, top:-44, right:60, bottom:2},
+  Valve42m: {left:-70, top:-44, right:75, bottom:2},
+  Valve52m: {left:-110, top:-44, right:100, bottom:2},
+  Valve52p: {left:-90, top:-44, right:100, bottom:2},
+  ValveOr: {left:-42, top:10, right:42, bottom:50},
+  ValveAnd: {left:-42, top:10, right:42, bottom:50},
+  ValveNret: {left:-18, top:-42, right:18, bottom:0},
+  ValveFlow: {left:-30, top:-48, right:30, bottom:4},
+  ValveIsol: {left:-44, top:-49, right:44, bottom:-1},
+  PressureReducer: {left:-65, top:-68, right:65, bottom:44},
+  BackPressureRegulator: {left:-65, top:-68, right:65, bottom:44},
+  PneumaticFilter: {left:-24, top:-45, right:24, bottom:0},
+  TestPort: {left:-18, top:-38, right:18, bottom:0},
+  VisualIndicator: {left:-20, top:-45, right:20, bottom:0},
+  DifferentialPressureSwitch: {left:-64, top:-64, right:64, bottom:64},
+  AirTank: {left:-38, top:-24, right:38, bottom:24},
+  ProcessReservoir: {left:-58, top:-58, right:58, bottom:34},
+  ProcessIsolationValve: {left:-44, top:-49, right:44, bottom:-1},
+  ProcessTestPort: {left:-18, top:-38, right:18, bottom:0},
+  ProcessManometer: {left:-20, top:-48, right:20, bottom:8},
+  Cylinder1: {left:-5, top:-42, right:120, bottom:-8},
+  Cylinder1Out: {left:-5, top:-42, right:120, bottom:-8},
+  Cylinder2: {left:-5, top:-42, right:120, bottom:-8},
 };
 
 let bomMode = 'purchase';
@@ -1261,18 +1332,29 @@ class ComponentBase {
   }
 
   labelPosition() {
-    const offset = componentLabelOffsets[this.type] || {x:0, y:42};
+    const bounds = componentLabelBounds[this.type] || {left:-35, top:-35, right:35, bottom:35};
+    const position = getComponentLabelPosition(this);
+    const offsetX = getComponentLabelOffset(this, 'x');
+    const offsetY = getComponentLabelOffset(this, 'y');
+    const col = position.charAt(1);
+    const row = position.charAt(0);
+    const local = {
+      x: (col === 'l') ? bounds.left - labelMargin : (col === 'r') ? bounds.right + labelMargin : 0.5*(bounds.left + bounds.right),
+      y: (row === 't') ? bounds.top - labelMargin : (row === 'b') ? bounds.bottom + labelMargin : 0.5*(bounds.top + bounds.bottom),
+    };
+    local.x += offsetX;
+    local.y += offsetY;
     const rotation = (this.canRotate()) ? this.getRotation() : 0;
     if (rotation === 0) {
-      return {x:this.x + offset.x, y:this.y + offset.y};
+      return {x:this.x + local.x, y:this.y + local.y};
     }
 
     const rad = rotation * Math.PI / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
     return {
-      x: this.x + offset.x * cos - offset.y * sin,
-      y: this.y + offset.x * sin + offset.y * cos,
+      x: this.x + local.x * cos - local.y * sin,
+      y: this.y + local.x * sin + local.y * cos,
     };
   }
 
@@ -1619,7 +1701,7 @@ class ComponentBase {
   }
 
   serialize() {
-    return {type:this.type, stamp:this.timestamp, x:this.x, y:this.y, options:this.options};
+    return {type:this.type, stamp:this.timestamp, x:this.x, y:this.y, options:serializableComponentOptions(this)};
   }
 }
 
@@ -5471,6 +5553,70 @@ function forcedComponentLabel(comp) {
 }
 
 
+function normalizeLabelPosition(value) {
+  return labelPositionValues.includes(value) ? value : labelPositionDefault;
+}
+
+
+function normalizeLabelOffset(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.round(number * 100) / 100;
+}
+
+
+function getComponentLabelPosition(comp) {
+  if (!comp || !comp.options) return labelPositionDefault;
+  return normalizeLabelPosition(comp.options.labelPosition);
+}
+
+
+function getComponentLabelOffset(comp, axis) {
+  if (!comp || !comp.options) return 0;
+  const key = (axis === 'x') ? 'labelOffsetX' : 'labelOffsetY';
+  return normalizeLabelOffset(comp.options[key]);
+}
+
+
+function normalizeComponentLabelOptions(comp) {
+  if (!componentSupportsLabel(comp.type)) return;
+
+  const position = normalizeLabelPosition(comp.options.labelPosition);
+  if (position === labelPositionDefault) delete comp.options.labelPosition;
+  else comp.options.labelPosition = position;
+
+  const offsetX = normalizeLabelOffset(comp.options.labelOffsetX);
+  const offsetY = normalizeLabelOffset(comp.options.labelOffsetY);
+  if (offsetX === 0) delete comp.options.labelOffsetX;
+  else comp.options.labelOffsetX = offsetX;
+  if (offsetY === 0) delete comp.options.labelOffsetY;
+  else comp.options.labelOffsetY = offsetY;
+}
+
+
+function assignLabelPosition(comp, value) {
+  if (!componentSupportsLabel(comp.type)) return;
+  comp.options.labelPosition = normalizeLabelPosition(value);
+  normalizeComponentLabelOptions(comp);
+}
+
+
+function assignLabelOffset(comp, key, value) {
+  if (!componentSupportsLabel(comp.type)) return;
+  comp.options[key] = normalizeLabelOffset(value);
+  normalizeComponentLabelOptions(comp);
+}
+
+
+function serializableComponentOptions(comp) {
+  const options = {...comp.options};
+  if (!componentSupportsLabel(comp.type)) return options;
+  const temp = {type:comp.type, options};
+  normalizeComponentLabelOptions(temp);
+  return options;
+}
+
+
 function buildComponentLabelMap(components) {
   const counters = {};
   const labels = new Map();
@@ -5512,6 +5658,7 @@ function assignForcedComponentLabel(comp, value) {
 function normalizeLoadedComponentLabels(components) {
   for (const comp of components) {
     if (!componentSupportsLabel(comp.type) || !comp.options) continue;
+    normalizeComponentLabelOptions(comp);
     const normalized = normalizeForcedLabel(comp.options.label);
     if (normalized) comp.options.label = normalized;
     else delete comp.options.label;
@@ -5958,6 +6105,9 @@ class UIController {
     const prompts = [];
     if (componentSupportsLabel(comp.type)) {
       prompts.push({key: 'label', message: 'Label (empty = auto):', value: forcedComponentLabel(comp)});
+      prompts.push({key: 'labelPosition', message: 'Label position:', value: getComponentLabelPosition(comp), type: 'labelPositionGrid'});
+      prompts.push({key: 'labelOffsetX', message: 'Label offset X:', value: getComponentLabelOffset(comp, 'x'), type: 'number'});
+      prompts.push({key: 'labelOffsetY', message: 'Label offset Y:', value: getComponentLabelOffset(comp, 'y'), type: 'number'});
     }
     if (comp.type === 'Text') {
       prompts.push({key: 'text', message: 'Text:'});
@@ -6798,12 +6948,26 @@ const textInput = document.getElementById('textInput');
 const checkboxInputRow = document.getElementById('checkboxInputRow');
 const checkboxInput = document.getElementById('checkboxInput');
 const checkboxText = document.getElementById('checkboxText');
+const labelPositionGrid = document.getElementById('labelPositionGrid');
 const messageInput = document.getElementById('messageInput');
 
 const engine = new Engine();
 const renderer = new Renderer(canvas, engine);
 const ui = new UIController(canvas, engine, renderer);
 let last = performance.now();
+
+const labelPositionInputs = labelPositionGrid
+  ? [...labelPositionGrid.querySelectorAll('input[name="labelPosition"]')]
+  : [];
+
+labelPositionInputs.forEach(input => {
+  input.addEventListener('change', () => {
+    if (!input.checked) return;
+    labelPositionInputs.forEach(other => {
+      if (other !== input) other.checked = false;
+    });
+  });
+});
 
 
 function firstSetupApp() {
@@ -6854,6 +7018,9 @@ function textPromptAssign(key, message, afterClose=null, value=null, type='text'
         componentEdit.options[key] = checkboxInput.checked;
         componentEdit.validateOptions();
       }
+      else if (type === 'labelPositionGrid') {
+        assignLabelPosition(componentEdit, selectedLabelPositionGridValue());
+      }
       else {
         const text = textInput.value.trim();
         if (key === 'label') {
@@ -6863,8 +7030,16 @@ function textPromptAssign(key, message, afterClose=null, value=null, type='text'
           }
         }
         else if (text.length > 0) {
-          componentEdit.options[key] = text;
-          componentEdit.validateOptions();
+          if (['labelOffsetX', 'labelOffsetY'].includes(key)) {
+            assignLabelOffset(componentEdit, key, text);
+          }
+          else {
+            componentEdit.options[key] = text;
+            componentEdit.validateOptions();
+          }
+        }
+        else if (['labelOffsetX', 'labelOffsetY'].includes(key)) {
+          assignLabelOffset(componentEdit, key, 0);
         }
       }
       renderer.draw();
@@ -6879,15 +7054,40 @@ function textPromptAssign(key, message, afterClose=null, value=null, type='text'
 }
 
 
+function selectedLabelPositionGridValue() {
+  const selected = labelPositionInputs.find(input => input.checked);
+  return selected ? selected.value : labelPositionDefault;
+}
+
+
+function setLabelPositionGridValue(value) {
+  const position = normalizeLabelPosition(value);
+  labelPositionInputs.forEach(input => {
+    input.checked = (input.value === position);
+    input.title = labelPositionNames[input.value] || input.value;
+  });
+}
+
+
 function textPromptDialog(content='Text', message='Value:', type='text') {
   messageInput.innerText = message;
-  textInput.style.display = (type === 'checkbox') ? 'none' : '';
-  checkboxInputRow.style.display = (type === 'checkbox') ? 'flex' : 'none';
+  const isCheckbox = (type === 'checkbox');
+  const isLabelPositionGrid = (type === 'labelPositionGrid');
+  textInput.style.display = (!isCheckbox && !isLabelPositionGrid) ? '' : 'none';
+  checkboxInputRow.style.display = isCheckbox ? 'flex' : 'none';
+  if (labelPositionGrid) {
+    labelPositionGrid.style.display = isLabelPositionGrid ? 'grid' : 'none';
+  }
   if (type === 'checkbox') {
     checkboxInput.checked = (content === true || content === 'true');
     checkboxText.innerText = 'Enabled';
   }
+  else if (isLabelPositionGrid) {
+    setLabelPositionGridValue(content);
+  }
   else {
+    textInput.type = (type === 'number') ? 'number' : 'text';
+    textInput.step = (type === 'number') ? 'any' : '';
     textInput.value = content;
   }
   textPrompt.showModal();

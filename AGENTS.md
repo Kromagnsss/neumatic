@@ -13,7 +13,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Respecter les schemas fournis par l'utilisateur comme reference principale pour le dessin des composants.
 - Quand un symbole est modifie sur le canvas, synchroniser aussi la miniature du panneau de selection gauche afin qu'elle soit fidele au composant place.
 - Les miniatures de la palette doivent rester centrees et non rognees.
-- Les labels et textes ajoutes sur les schemas doivent rester lisibles, non miroitables et peu intrusifs.
+- Les labels et textes ajoutes sur les schemas doivent rester lisibles, non miroitables et peu intrusifs; les labels d'equipements doivent rester proches, positionnables autour du symbole et ajustables par offsets X/Y quand la lisibilite depend du circuit.
 - Les symboles doivent rester compacts : rapprocher les leviers, fleches, X et marqueurs d'etat du corps principal quand cela ne nuit pas a la lisibilite.
 - Garder la logique de simulation existante intacte quand la demande concerne uniquement le rendu graphique.
 - Pour les composants avec plusieurs etats visuels, le symbole doit refleter clairement l'etat simule.
