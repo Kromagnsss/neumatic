@@ -20,6 +20,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Pour les composants avec plusieurs etats visuels, le symbole doit refleter clairement l'etat simule.
 - Quand un composant supporte le flip, le dessin, les ports de connexion et la logique de simulation doivent rester coherents avec le cote fonctionnel reel.
 - Quand un symbole montre un port externe nomme, ce port doit etre modelise comme une vraie connexion simulee et ne doit pas etre remplace par un comportement interne implicite.
+- Pour les pilotes DCS, le chemin F-C n'est pas un clapet anti-retour : il doit equilibrer les pressions via une conductance reglable separee de la conductance C-EX.
 - Quand une variante process d'un composant pneumatique est demandee, basculer ses ports fonctionnels en domaine process et utiliser un echappement process explicite quand une purge process raccordable est necessaire.
 - Appliquer les memes conventions aux variantes pneumatiques et process quand elles representent le meme type d'equipement.
 - Preserver la compatibilite des anciens fichiers sauvegardes quand des options sont ajoutees.

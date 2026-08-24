@@ -3124,6 +3124,7 @@ class DcsPilot extends ComponentBase {
     this.colorEX = defaultColor;
     this.options = {
       pressure: 100,
+      feedConductance: conductanceBase,
       exhaustConductance: conductanceBase,
     };
   }
@@ -3136,6 +3137,14 @@ class DcsPilot extends ComponentBase {
       this.options.pressure = processPressureMax;
     if (this.options.pressure < 0.1)
       this.options.pressure = 0.1;
+
+    this.options.feedConductance = Number(this.options.feedConductance);
+    if (isNaN(this.options.feedConductance))
+      this.options.feedConductance = conductanceBase;
+    if (this.options.feedConductance > conductanceBase)
+      this.options.feedConductance = conductanceBase;
+    if (this.options.feedConductance < 10)
+      this.options.feedConductance = 10;
 
     this.options.exhaustConductance = Number(this.options.exhaustConductance);
     if (isNaN(this.options.exhaustConductance))
@@ -3176,8 +3185,8 @@ class DcsPilot extends ComponentBase {
       }
     }
     else {
-      if (nodeF.pressure > nodeC.pressure + 0.02) {
-        this.computeFlow(nodeF, nodeC, this.conductance, dt);
+      if (Math.abs(nodeF.pressure - nodeC.pressure) > 0.02) {
+        this.computeFlow(nodeF, nodeC, this.options.feedConductance, dt);
       }
     }
 
@@ -3325,8 +3334,8 @@ class ProcessDcsPilot extends DcsPilot {
     }
     else {
       this.syncProcessColorRange(nodeF, nodeC);
-      if (nodeF.pressure > nodeC.pressure + 0.02) {
-        this.computeFlow(nodeF, nodeC, this.conductance, dt);
+      if (Math.abs(nodeF.pressure - nodeC.pressure) > 0.02) {
+        this.computeFlow(nodeF, nodeC, this.options.feedConductance, dt);
       }
       this.syncProcessColorRange(nodeF, nodeC);
     }
@@ -6338,7 +6347,8 @@ function componentTechnicalParams(comp) {
       '; exhaust ' + comp.options.exhaustConductance + '; ' + flippedText(comp);
   }
   if (['DcsPilot', 'ProcessDcsPilot'].includes(comp.type)) {
-    return 'S setting ' + comp.options.pressure + ' bar; exhaust ' + comp.options.exhaustConductance;
+    return 'S setting ' + comp.options.pressure + ' bar; feed ' + comp.options.feedConductance +
+      '; exhaust ' + comp.options.exhaustConductance;
   }
   if (comp.type === 'ProcessEscape') return '0 bar';
   if (comp.type === 'AirTank') return 'volume ' + comp.options.volume + ' cm3';
@@ -6765,6 +6775,7 @@ class UIController {
     }
     if (['DcsPilot', 'ProcessDcsPilot'].includes(comp.type)) {
       prompts.push({key: 'pressure', message: 'S pressure setting (0.1 - ' + processPressureMax + ' bar):'});
+      prompts.push({key: 'feedConductance', message: 'F-C conductance (10-' + conductanceBase + '):'});
       prompts.push({key: 'exhaustConductance', message: 'EX conductance (10-' + conductanceBase + '):'});
     }
     if (comp.type === 'ProcessReservoir') {
