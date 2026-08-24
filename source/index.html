@@ -536,6 +536,7 @@
         <button class="tool-button component-tool" data-action="cTestPort"><span class="tool-symbol round">T</span><span class="tool-label" data-i18n="cTestPort">Test port</span></button>
         <button class="tool-button component-tool" data-action="cVisualIndicator"><span class="tool-symbol round">●</span><span class="tool-label" data-i18n="cVisualIndicator">Visual indicator</span></button>
         <button class="tool-button component-tool" data-action="cDifferentialPressureSwitch"><span class="tool-symbol">DPS</span><span class="tool-label" data-i18n="cDifferentialPressureSwitch">Differential pressure switch</span></button>
+        <button class="tool-button component-tool" data-action="cDcsPilot"><span class="tool-symbol">DCS</span><span class="tool-label" data-i18n="cDcsPilot">DCS pilot</span></button>
         <button class="tool-button component-tool" data-action="cAirTank"><span class="tool-symbol">▭</span><span class="tool-label" data-i18n="cAirTank">Air tank</span></button>
         <button class="tool-button component-tool" data-action="cValveOr"><span class="tool-symbol">OR</span><span class="tool-label" data-i18n="cValveOr">OR valve</span></button>
         <button class="tool-button component-tool" data-action="cValveAnd"><span class="tool-symbol">AND</span><span class="tool-label" data-i18n="cValveAnd">AND valve</span></button>
@@ -757,6 +758,7 @@ const componentToolTypes = {
   cTestPort: 'TestPort',
   cVisualIndicator: 'VisualIndicator',
   cDifferentialPressureSwitch: 'DifferentialPressureSwitch',
+  cDcsPilot: 'DcsPilot',
   cAirTank: 'AirTank',
   cProcessReservoir: 'ProcessReservoir',
   cProcessPipe: 'ProcessPipe',
@@ -793,6 +795,7 @@ const componentLabelPrefixes = {
   TestPort: 'TPT',
   VisualIndicator: 'VIS',
   DifferentialPressureSwitch: 'DPS',
+  DcsPilot: 'DCS',
   AirTank: 'ATK',
   ProcessReservoir: 'PTK',
   ProcessIsolationValve: 'PIV',
@@ -828,6 +831,7 @@ const componentTypeNames = {
   TestPort: 'Test port',
   VisualIndicator: 'Visual indicator',
   DifferentialPressureSwitch: 'Differential pressure switch',
+  DcsPilot: 'DCS pilot',
   AirTank: 'Air tank',
   ProcessReservoir: 'Process tank',
   ProcessIsolationValve: 'Process isolation valve',
@@ -879,6 +883,7 @@ const componentLabelBounds = {
   TestPort: {left:-18, top:-38, right:18, bottom:0},
   VisualIndicator: {left:-20, top:-45, right:20, bottom:0},
   DifferentialPressureSwitch: {left:-64, top:-64, right:64, bottom:64},
+  DcsPilot: {left:-70, top:-80, right:70, bottom:74},
   AirTank: {left:-38, top:-24, right:38, bottom:24},
   ProcessReservoir: {left:-58, top:-58, right:58, bottom:34},
   ProcessIsolationValve: {left:-44, top:-49, right:44, bottom:-1},
@@ -951,6 +956,7 @@ const translations = {
     cTestPort: 'Test port',
     cVisualIndicator: 'Visual indicator',
     cDifferentialPressureSwitch: 'Differential pressure switch',
+    cDcsPilot: 'DCS pilot',
     cAirTank: 'Air tank',
     cProcessReservoir: 'Process reservoir',
     cProcessPipe: 'Process pipe',
@@ -1030,6 +1036,7 @@ const translations = {
     cTestPort: 'Puerto de prueba',
     cVisualIndicator: 'Indicador visual',
     cDifferentialPressureSwitch: 'Presostato diferencial',
+    cDcsPilot: 'Piloto DCS',
     cAirTank: 'Depósito de aire',
     cProcessReservoir: 'Depósito de proceso',
     cProcessPipe: 'Tubería de proceso',
@@ -1136,6 +1143,7 @@ document.addEventListener("click", (e) => {
     cTestPort: () => { simulationStop(); drawMode='component'; componentType='TestPort'; },
     cVisualIndicator: () => { simulationStop(); drawMode='component'; componentType='VisualIndicator'; },
     cDifferentialPressureSwitch: () => { simulationStop(); drawMode='component'; componentType='DifferentialPressureSwitch'; },
+    cDcsPilot: () => { simulationStop(); drawMode='component'; componentType='DcsPilot'; },
     cAirTank: () => { simulationStop(); drawMode='component'; componentType='AirTank'; },
     cProcessReservoir: () => { simulationStop(); drawMode='component'; componentType='ProcessReservoir'; },
     cProcessPipe: () => { simulationStop(); drawMode='component'; componentType='ProcessPipe'; },
@@ -3074,6 +3082,176 @@ class DifferentialPressureSwitch extends ComponentBase {
     if (this.options.inverse) {
       ctx.fillText('INV', this.x, this.y-6);
     }
+    ctx.textAlign = 'start';
+  }
+}
+
+
+class DcsPilot extends ComponentBase {
+  constructor(pos) {
+    super(pos);
+    this.type = 'DcsPilot';
+    this.conductance = conductanceBase;
+    this.active = false;
+    this.colorS = processDefaultColor;
+    this.colorF = defaultColor;
+    this.colorC = defaultColor;
+    this.colorEX = defaultColor;
+    this.options = {
+      pressure: 100,
+      exhaustConductance: conductanceBase,
+    };
+  }
+
+  validateOptions() {
+    this.options.pressure = Number(this.options.pressure);
+    if (isNaN(this.options.pressure))
+      this.options.pressure = 100;
+    if (this.options.pressure > processPressureMax)
+      this.options.pressure = processPressureMax;
+    if (this.options.pressure < 0.1)
+      this.options.pressure = 0.1;
+
+    this.options.exhaustConductance = Number(this.options.exhaustConductance);
+    if (isNaN(this.options.exhaustConductance))
+      this.options.exhaustConductance = conductanceBase;
+    if (this.options.exhaustConductance > conductanceBase)
+      this.options.exhaustConductance = conductanceBase;
+    if (this.options.exhaustConductance < 10)
+      this.options.exhaustConductance = 10;
+  }
+
+  vias() {
+    const viaS = {x:this.x-60, y:this.y-20, domain: 'process'};
+    const viaF = {x:this.x-60, y:this.y+20};
+    const viaC = {x:this.x+60, y:this.y+10};
+    const viaEX = {x:this.x, y:this.y+60};
+    return this.rotateVias([viaS, viaF, viaC, viaEX]);
+  }
+
+  reset() {
+    this.active = false;
+    this.colorS = processDefaultColor;
+    this.colorF = defaultColor;
+    this.colorC = defaultColor;
+    this.colorEX = defaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [viaS, viaF, viaC, viaEX] = this.vias();
+    const nodeS = engine.findNode(viaS);
+    const nodeF = engine.findNode(viaF);
+    const nodeC = engine.findNode(viaC);
+    const nodeEX = engine.findNode(viaEX);
+
+    this.active = nodeS.pressure >= this.options.pressure;
+    if (this.active) {
+      if (nodeC.pressure > nodeEX.pressure + 0.02) {
+        this.computeFlow(nodeC, nodeEX, this.options.exhaustConductance, dt);
+      }
+    }
+    else {
+      if (nodeF.pressure > nodeC.pressure + 0.02) {
+        this.computeFlow(nodeF, nodeC, this.conductance, dt);
+      }
+    }
+
+    this.colorS = this.colorProcessPressure(
+      nodeS.pressure,
+      nodeS.processPressureMin,
+      nodeS.processPressureMax
+    );
+    this.colorF = this.colorPressure(nodeF.pressure);
+    this.colorC = this.colorPressure(nodeC.pressure);
+    this.colorEX = this.colorPressure(nodeEX.pressure);
+  }
+
+  near(pos) {
+    return this.nearRect(this.x-70, this.y-80, this.x+70, this.y+74, pos);
+  }
+
+  draw(ctx) {
+    this.drawPort(ctx, this.x-60, this.y-20, 26, 0, this.colorS);
+    this.drawPort(ctx, this.x-60, this.y+20, 26, 0, this.colorF);
+    this.drawPort(ctx, this.x+60, this.y+10, -26, 0, this.colorC);
+    this.drawPort(ctx, this.x, this.y+60, 0, -16, this.colorEX);
+
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = '#fff';
+    this.drawRectangle(ctx, this.x-34, this.y-34, this.x+34, this.y+44);
+
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.x-34, this.y-8);
+    ctx.lineTo(this.x, this.y-8);
+    ctx.lineTo(this.x, this.y-34);
+    ctx.stroke();
+
+    ctx.strokeStyle = this.selected ? selectedColor : this.colorS;
+    ctx.beginPath();
+    ctx.moveTo(this.x-34, this.y-20);
+    ctx.lineTo(this.x-6, this.y-20);
+    ctx.lineTo(this.x, this.y-34);
+    ctx.stroke();
+
+    this.drawDcsSpring(ctx, color);
+    this.drawDcsState(ctx);
+    this.drawDcsLabels(ctx);
+  }
+
+  drawDcsSpring(ctx, color) {
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y-34);
+    ctx.lineTo(this.x, this.y-45);
+    const top = this.y-76;
+    const bottom = this.y-45;
+    const steps = 7;
+    for (let i = 0; i <= steps; i++) {
+      const y = bottom - (bottom - top) * i / steps;
+      const x = (i % 2 === 0) ? this.x-8 : this.x+8;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(this.x, this.y-80);
+    ctx.stroke();
+  }
+
+  drawDcsState(ctx) {
+    const color = (this.selected) ? selectedColor : defaultColor;
+    if (this.active) {
+      this.drawArrow(ctx, this.x+25, this.y+10, this.x+2, this.y+37, this.colorC);
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(this.x-34, this.y+20);
+      ctx.lineTo(this.x-20, this.y+20);
+      ctx.moveTo(this.x-20, this.y+14);
+      ctx.lineTo(this.x-20, this.y+26);
+      ctx.stroke();
+    }
+    else {
+      this.drawArrow(ctx, this.x-25, this.y+20, this.x+25, this.y+10, this.colorF);
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y+44);
+      ctx.lineTo(this.x, this.y+32);
+      ctx.moveTo(this.x-6, this.y+32);
+      ctx.lineTo(this.x+6, this.y+32);
+      ctx.stroke();
+    }
+  }
+
+  drawDcsLabels(ctx) {
+    const color = (this.selected) ? selectedColor : defaultColor;
+    ctx.font = textFont;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'right';
+    ctx.fillText('S', this.x-66, this.y-24);
+    ctx.fillText('F', this.x-66, this.y+24);
+    ctx.textAlign = 'left';
+    ctx.fillText('C', this.x+66, this.y+14);
+    ctx.fillText('EX', this.x+7, this.y+58);
     ctx.textAlign = 'start';
   }
 }
@@ -5779,6 +5957,9 @@ function componentTechnicalParams(comp) {
     return 'HP ' + comp.options.pressure + ' bar; inverse ' + yesNo(comp.options.inverse) +
       '; exhaust ' + comp.options.exhaustConductance + '; ' + flippedText(comp);
   }
+  if (comp.type === 'DcsPilot') {
+    return 'S setting ' + comp.options.pressure + ' bar; exhaust ' + comp.options.exhaustConductance;
+  }
   if (comp.type === 'AirTank') return 'volume ' + comp.options.volume + ' cm3';
   if (comp.type === 'ProcessReservoir') {
     return 'min ' + comp.options.pressureMin + ' bar; max ' + comp.options.pressureMax +
@@ -5931,6 +6112,7 @@ function createComponentByType(type, position, endPosition=position) {
     case 'TestPort': return new TestPort(position);
     case 'VisualIndicator': return new VisualIndicator(position);
     case 'DifferentialPressureSwitch': return new DifferentialPressureSwitch(position);
+    case 'DcsPilot': return new DcsPilot(position);
     case 'AirTank': return new AirTank(position);
     case 'ProcessReservoir': return new ProcessReservoir(position);
     case 'ProcessIsolationValve': return new ProcessIsolationValve(position);
@@ -5964,6 +6146,7 @@ function toolPreviewConfig(type) {
     PressureReducer: {scale: 0.42, offsetX: 0, offsetY: 2},
     BackPressureRegulator: {scale: 0.42, offsetX: 0, offsetY: 2},
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
+    DcsPilot: {scale: 0.32, offsetX: 0, offsetY: 1},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
     ProcessIsolationValve: {scale: 0.44, offsetX: -11, offsetY: 0},
     Cylinder1: {scale: 0.35, offsetX: -25, offsetY: 7},
@@ -6189,6 +6372,10 @@ class UIController {
       prompts.push({key: 'pressure', message: 'HP pressure setting (0.1 - ' + processPressureMax + ' bar):'});
       prompts.push({key: 'inverse', message: 'Inverse operation:', type: 'checkbox'});
       prompts.push({key: 'exhaustConductance', message: 'Exhaust conductance (10-' + conductanceBase + '):'});
+    }
+    if (comp.type === 'DcsPilot') {
+      prompts.push({key: 'pressure', message: 'S pressure setting (0.1 - ' + processPressureMax + ' bar):'});
+      prompts.push({key: 'exhaustConductance', message: 'EX conductance (10-' + conductanceBase + '):'});
     }
     if (comp.type === 'ProcessReservoir') {
       prompts.push({key: 'pressureMin', message: 'Process pressure min (0 - ' + processPressureMax + ' bar):'});
@@ -6529,6 +6716,7 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'TestPort') newcomp = new TestPort({x:comp.x, y:comp.y});
     if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
     if (comp.type === 'DifferentialPressureSwitch') newcomp = new DifferentialPressureSwitch({x:comp.x, y:comp.y});
+    if (comp.type === 'DcsPilot') newcomp = new DcsPilot({x:comp.x, y:comp.y});
     if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessReservoir') newcomp = new ProcessReservoir({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessIsolationValve') newcomp = new ProcessIsolationValve({x:comp.x, y:comp.y});

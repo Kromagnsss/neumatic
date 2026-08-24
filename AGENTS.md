@@ -18,6 +18,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Garder la logique de simulation existante intacte quand la demande concerne uniquement le rendu graphique.
 - Pour les composants avec plusieurs etats visuels, le symbole doit refleter clairement l'etat simule.
 - Quand un composant supporte le flip, le dessin, les ports de connexion et la logique de simulation doivent rester coherents avec le cote fonctionnel reel.
+- Quand un symbole montre un port externe nomme, ce port doit etre modelise comme une vraie connexion simulee et ne doit pas etre remplace par un comportement interne implicite.
 - Appliquer les memes conventions aux variantes pneumatiques et process quand elles representent le meme type d'equipement.
 - Preserver la compatibilite des anciens fichiers sauvegardes quand des options sont ajoutees.
 
