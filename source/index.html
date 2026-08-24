@@ -548,7 +548,9 @@
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cProcessReservoir"><span class="tool-symbol">500</span><span class="tool-label" data-i18n="cProcessReservoir">Process reservoir</span></button>
         <button class="tool-button component-tool" data-action="cPilotOperatedPressureReliefValve"><span class="tool-symbol">POPRV</span><span class="tool-label" data-i18n="cPilotOperatedPressureReliefValve">Pilot-operated PRV</span></button>
+        <button class="tool-button component-tool" data-action="cProcessDcsPilot"><span class="tool-symbol">DCS</span><span class="tool-label" data-i18n="cProcessDcsPilot">Process DCS pilot</span></button>
         <button class="tool-button component-tool" data-action="cProcessPipe"><span class="tool-symbol">━</span><span class="tool-label" data-i18n="cProcessPipe">Process pipe</span></button>
+        <button class="tool-button component-tool" data-action="cProcessEscape"><span class="tool-symbol">▽</span><span class="tool-label" data-i18n="cProcessEscape">Process escape</span></button>
         <button class="tool-button component-tool" data-action="cProcessIsolationValve"><span class="tool-symbol">X</span><span class="tool-label" data-i18n="cProcessIsolationValve">Process isolation valve</span></button>
         <button class="tool-button component-tool" data-action="cProcessTestPort"><span class="tool-symbol round">T</span><span class="tool-label" data-i18n="cProcessTestPort">Process test port</span></button>
         <button class="tool-button component-tool" data-action="cProcessManometer"><span class="tool-symbol round">M</span><span class="tool-label" data-i18n="cProcessManometer">Process manometer</span></button>
@@ -763,7 +765,9 @@ const componentToolTypes = {
   cAirTank: 'AirTank',
   cProcessReservoir: 'ProcessReservoir',
   cPilotOperatedPressureReliefValve: 'PilotOperatedPressureReliefValve',
+  cProcessDcsPilot: 'ProcessDcsPilot',
   cProcessPipe: 'ProcessPipe',
+  cProcessEscape: 'ProcessEscape',
   cProcessIsolationValve: 'ProcessIsolationValve',
   cProcessTestPort: 'ProcessTestPort',
   cProcessManometer: 'ProcessManometer',
@@ -801,6 +805,8 @@ const componentLabelPrefixes = {
   AirTank: 'ATK',
   ProcessReservoir: 'PTK',
   PilotOperatedPressureReliefValve: 'POPRV',
+  ProcessDcsPilot: 'DCS',
+  ProcessEscape: 'PEX',
   ProcessIsolationValve: 'PIV',
   ProcessTestPort: 'PTP',
   ProcessManometer: 'PMG',
@@ -838,6 +844,8 @@ const componentTypeNames = {
   AirTank: 'Air tank',
   ProcessReservoir: 'Process tank',
   PilotOperatedPressureReliefValve: 'Pilot-operated pressure relief valve',
+  ProcessDcsPilot: 'Process DCS pilot',
+  ProcessEscape: 'Process escape',
   ProcessIsolationValve: 'Process isolation valve',
   ProcessTestPort: 'Process test port',
   ProcessManometer: 'Process manometer',
@@ -891,6 +899,8 @@ const componentLabelBounds = {
   AirTank: {left:-38, top:-24, right:38, bottom:24},
   ProcessReservoir: {left:-58, top:-58, right:58, bottom:34},
   PilotOperatedPressureReliefValve: {left:-78, top:-88, right:78, bottom:82},
+  ProcessDcsPilot: {left:-70, top:-80, right:70, bottom:74},
+  ProcessEscape: {left:-18, top:0, right:18, bottom:24},
   ProcessIsolationValve: {left:-44, top:-49, right:44, bottom:-1},
   ProcessTestPort: {left:-18, top:-38, right:18, bottom:0},
   ProcessManometer: {left:-20, top:-48, right:20, bottom:8},
@@ -965,7 +975,9 @@ const translations = {
     cAirTank: 'Air tank',
     cProcessReservoir: 'Process reservoir',
     cPilotOperatedPressureReliefValve: 'Pilot-operated PRV',
+    cProcessDcsPilot: 'Process DCS pilot',
     cProcessPipe: 'Process pipe',
+    cProcessEscape: 'Process escape',
     cProcessIsolationValve: 'Process isolation valve',
     cProcessTestPort: 'Process test port',
     cProcessManometer: 'Process manometer',
@@ -1046,7 +1058,9 @@ const translations = {
     cAirTank: 'Depósito de aire',
     cProcessReservoir: 'Depósito de proceso',
     cPilotOperatedPressureReliefValve: 'Válvula POPRV',
+    cProcessDcsPilot: 'Piloto DCS de proceso',
     cProcessPipe: 'Tubería de proceso',
+    cProcessEscape: 'Escape de proceso',
     cProcessIsolationValve: 'Válvula de aislamiento de proceso',
     cProcessTestPort: 'Puerto de prueba de proceso',
     cProcessManometer: 'Manómetro de proceso',
@@ -1154,7 +1168,9 @@ document.addEventListener("click", (e) => {
     cAirTank: () => { simulationStop(); drawMode='component'; componentType='AirTank'; },
     cProcessReservoir: () => { simulationStop(); drawMode='component'; componentType='ProcessReservoir'; },
     cPilotOperatedPressureReliefValve: () => { simulationStop(); drawMode='component'; componentType='PilotOperatedPressureReliefValve'; },
+    cProcessDcsPilot: () => { simulationStop(); drawMode='component'; componentType='ProcessDcsPilot'; },
     cProcessPipe: () => { simulationStop(); drawMode='component'; componentType='ProcessPipe'; },
+    cProcessEscape: () => { simulationStop(); drawMode='component'; componentType='ProcessEscape'; },
     cProcessIsolationValve: () => { simulationStop(); drawMode='component'; componentType='ProcessIsolationValve'; },
     cProcessTestPort: () => { simulationStop(); drawMode='component'; componentType='ProcessTestPort'; },
     cProcessManometer: () => { simulationStop(); drawMode='component'; componentType='ProcessManometer'; },
@@ -3265,6 +3281,79 @@ class DcsPilot extends ComponentBase {
 }
 
 
+class ProcessDcsPilot extends DcsPilot {
+  constructor(pos) {
+    super(pos);
+    this.type = 'ProcessDcsPilot';
+    this.colorS = processDefaultColor;
+    this.colorF = processDefaultColor;
+    this.colorC = processDefaultColor;
+    this.colorEX = processDefaultColor;
+  }
+
+  vias() {
+    const viaS = {x:this.x-60, y:this.y-20, domain: 'process'};
+    const viaF = {x:this.x-60, y:this.y+20, domain: 'process'};
+    const viaC = {x:this.x+60, y:this.y+10, domain: 'process'};
+    const viaEX = {x:this.x, y:this.y+60, domain: 'process'};
+    return this.rotateVias([viaS, viaF, viaC, viaEX]);
+  }
+
+  reset() {
+    this.active = false;
+    this.colorS = processDefaultColor;
+    this.colorF = processDefaultColor;
+    this.colorC = processDefaultColor;
+    this.colorEX = processDefaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    const [viaS, viaF, viaC, viaEX] = this.vias();
+    const nodeS = engine.findNode(viaS);
+    const nodeF = engine.findNode(viaF);
+    const nodeC = engine.findNode(viaC);
+    const nodeEX = engine.findNode(viaEX);
+
+    this.active = nodeS.pressure > this.options.pressure;
+    if (this.active) {
+      this.syncProcessColorRange(nodeC, nodeEX);
+      if (nodeC.pressure > nodeEX.pressure + 0.02) {
+        this.computeFlow(nodeC, nodeEX, this.options.exhaustConductance, dt);
+      }
+      this.syncProcessColorRange(nodeC, nodeEX);
+    }
+    else {
+      this.syncProcessColorRange(nodeF, nodeC);
+      if (nodeF.pressure > nodeC.pressure + 0.02) {
+        this.computeFlow(nodeF, nodeC, this.conductance, dt);
+      }
+      this.syncProcessColorRange(nodeF, nodeC);
+    }
+
+    this.colorS = this.colorProcessPressure(
+      nodeS.pressure,
+      nodeS.processPressureMin,
+      nodeS.processPressureMax
+    );
+    this.colorF = this.colorProcessPressure(
+      nodeF.pressure,
+      nodeF.processPressureMin,
+      nodeF.processPressureMax
+    );
+    this.colorC = this.colorProcessPressure(
+      nodeC.pressure,
+      nodeC.processPressureMin,
+      nodeC.processPressureMax
+    );
+    this.colorEX = this.colorProcessPressure(
+      nodeEX.pressure,
+      nodeEX.processPressureMin,
+      nodeEX.processPressureMax
+    );
+  }
+}
+
+
 class AirTank extends ComponentBase {
   constructor(pos) {
     super(pos);
@@ -3944,6 +4033,46 @@ class Escape extends ComponentBase {
     ctx.lineTo(this.x+6, this.y+10);
     ctx.lineTo(this.x,   this.y+10);
     ctx.stroke();
+  }
+}
+
+
+class ProcessEscape extends Escape {
+  constructor(pos) {
+    super(pos);
+    this.type = 'ProcessEscape';
+    this.pressure = 0;
+    this.color = processDefaultColor;
+  }
+
+  vias() {
+    const via1 = {x:this.x, y:this.y, domain: 'process'};
+    return this.rotateVias([via1]);
+  }
+
+  reset() {
+    this.pressure = 0;
+    this.color = processDefaultColor;
+  }
+
+  update(ctx, engine, dt) {
+    this.clampProcessNode(engine);
+  }
+
+  postUpdate(ctx, engine, dt) {
+    this.clampProcessNode(engine);
+  }
+
+  clampProcessNode(engine) {
+    const [via1] = this.vias();
+    const node = engine.findNode(via1);
+    node.pressure = this.pressure;
+    node.mass = node.pressure * node.volume;
+    this.color = this.colorProcessPressure(
+      node.pressure,
+      node.processPressureMin,
+      node.processPressureMax
+    );
   }
 }
 
@@ -6207,9 +6336,10 @@ function componentTechnicalParams(comp) {
     return 'HP ' + comp.options.pressure + ' bar; inverse ' + yesNo(comp.options.inverse) +
       '; exhaust ' + comp.options.exhaustConductance + '; ' + flippedText(comp);
   }
-  if (comp.type === 'DcsPilot') {
+  if (['DcsPilot', 'ProcessDcsPilot'].includes(comp.type)) {
     return 'S setting ' + comp.options.pressure + ' bar; exhaust ' + comp.options.exhaustConductance;
   }
+  if (comp.type === 'ProcessEscape') return '0 bar';
   if (comp.type === 'AirTank') return 'volume ' + comp.options.volume + ' cm3';
   if (comp.type === 'ProcessReservoir') {
     return 'min ' + comp.options.pressureMin + ' bar; max ' + comp.options.pressureMax +
@@ -6366,10 +6496,12 @@ function createComponentByType(type, position, endPosition=position) {
     case 'VisualIndicator': return new VisualIndicator(position);
     case 'DifferentialPressureSwitch': return new DifferentialPressureSwitch(position);
     case 'DcsPilot': return new DcsPilot(position);
+    case 'ProcessDcsPilot': return new ProcessDcsPilot(position);
     case 'AirTank': return new AirTank(position);
     case 'ProcessReservoir': return new ProcessReservoir(position);
     case 'PilotOperatedPressureReliefValve': return new PilotOperatedPressureReliefValve(position);
     case 'ProcessIsolationValve': return new ProcessIsolationValve(position);
+    case 'ProcessEscape': return new ProcessEscape(position);
     case 'ProcessTestPort': return new ProcessTestPort(position);
     case 'ProcessManometer': return new ProcessManometer(position);
     case 'ValveOr': return new ValveOr(position);
@@ -6401,6 +6533,8 @@ function toolPreviewConfig(type) {
     BackPressureRegulator: {scale: 0.42, offsetX: 0, offsetY: 2},
     DifferentialPressureSwitch: {scale: 0.38, offsetX: 0, offsetY: 0},
     DcsPilot: {scale: 0.32, offsetX: 0, offsetY: 1},
+    ProcessDcsPilot: {scale: 0.32, offsetX: 0, offsetY: 1},
+    ProcessEscape: {scale: 0.58, offsetX: 0, offsetY: -2},
     ProcessReservoir: {scale: 0.42, offsetX: 0, offsetY: 0},
     PilotOperatedPressureReliefValve: {scale: 0.29, offsetX: -1, offsetY: 1},
     ProcessIsolationValve: {scale: 0.44, offsetX: -11, offsetY: 0},
@@ -6628,7 +6762,7 @@ class UIController {
       prompts.push({key: 'inverse', message: 'Inverse operation:', type: 'checkbox'});
       prompts.push({key: 'exhaustConductance', message: 'Exhaust conductance (10-' + conductanceBase + '):'});
     }
-    if (comp.type === 'DcsPilot') {
+    if (['DcsPilot', 'ProcessDcsPilot'].includes(comp.type)) {
       prompts.push({key: 'pressure', message: 'S pressure setting (0.1 - ' + processPressureMax + ' bar):'});
       prompts.push({key: 'exhaustConductance', message: 'EX conductance (10-' + conductanceBase + '):'});
     }
@@ -6976,10 +7110,12 @@ function loadSchema(schematicJSON) {
     if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
     if (comp.type === 'DifferentialPressureSwitch') newcomp = new DifferentialPressureSwitch({x:comp.x, y:comp.y});
     if (comp.type === 'DcsPilot') newcomp = new DcsPilot({x:comp.x, y:comp.y});
+    if (comp.type === 'ProcessDcsPilot') newcomp = new ProcessDcsPilot({x:comp.x, y:comp.y});
     if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessReservoir') newcomp = new ProcessReservoir({x:comp.x, y:comp.y});
     if (comp.type === 'PilotOperatedPressureReliefValve') newcomp = new PilotOperatedPressureReliefValve({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessIsolationValve') newcomp = new ProcessIsolationValve({x:comp.x, y:comp.y});
+    if (comp.type === 'ProcessEscape') newcomp = new ProcessEscape({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessTestPort') newcomp = new ProcessTestPort({x:comp.x, y:comp.y});
     if (comp.type === 'ProcessManometer') newcomp = new ProcessManometer({x:comp.x, y:comp.y});
     if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
