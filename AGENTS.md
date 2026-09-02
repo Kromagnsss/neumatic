@@ -26,6 +26,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Quand une variante process d'un composant pneumatique est demandee, basculer ses ports fonctionnels en domaine process et utiliser un echappement process explicite quand une purge process raccordable est necessaire.
 - Appliquer les memes conventions aux variantes pneumatiques et process quand elles representent le meme type d'equipement.
 - Preserver la compatibilite des anciens fichiers sauvegardes quand des options sont ajoutees.
+- En mode hydraulique, une ligne raccordee a un retour/exhaust doit pouvoir retomber vers 0 bar; eviter les paliers numeriques artificiels sur les purges via vannes directionnelles.
 
 ## Interface et edition
 

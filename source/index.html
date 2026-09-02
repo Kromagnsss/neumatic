@@ -1845,30 +1845,25 @@ class ComponentBase {
   }
 
   computeFlow(node1, node2, conductance, dt, scaleKey='conductanceScale') {
-    const m1 = node1.mass;
-    const m2 = node2.mass;
     const volume1 = node1.volume;
     const volume2 = node2.volume;
+    if (volume1 <= 0 || volume2 <= 0) return;
+
+    const pressure1 = pressureFromMass(node1.mass, volume1);
+    const pressure2 = pressureFromMass(node2.mass, volume2);
+    const dp = pressure1 - pressure2;
+    if (Math.abs(dp) <= 1e-9) return;
+
     const effectiveConductance = fluidConductance(conductance, node1, node2, scaleKey);
-
-    function flow(m1, m2) {
-      const dp = m1 / volume1 - m2 / volume2;
-      return effectiveConductance * Math.sign(dp) * Math.sqrt(Math.abs(dp));
-    }
-
-    const q1 = flow(m1, m2);
-    const k1_m = dt * q1;
-
-    const q2 = flow(m1 - 0.5*k1_m, m2 + 0.5*k1_m);
-    const k2_m = dt * q2;
-
-    const q3 = flow(m1 - 0.5*k2_m, m2 + 0.5*k2_m);
-    const k3_m = dt * q3;
-
-    const q4 = flow(m1 - k3_m, m2 + k3_m);
-    const k4_m = dt * q4;
-
-    const dm = (k1_m + 2*k2_m + 2*k3_m + k4_m)/6;
+    const direction = Math.sign(dp);
+    const requestedTransfer = Math.abs(dt * effectiveConductance * Math.sqrt(Math.abs(dp)));
+    const equalizingTransfer = Math.abs(dp) / (1 / volume1 + 1 / volume2);
+    const donor = direction > 0 ? node1 : node2;
+    const donorVolume = direction > 0 ? volume1 : volume2;
+    const donorReference = fluidReferencePressure(donor.domain);
+    const availableTransfer = Math.max(0, donor.mass - donorReference * donorVolume);
+    const transfer = Math.min(requestedTransfer, equalizingTransfer, availableTransfer);
+    const dm = direction * transfer;
 
     node1.mass -= dm;
     node2.mass += dm;
