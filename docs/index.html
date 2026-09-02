@@ -425,6 +425,34 @@
     margin: 0;
   }
 
+  .option-fields {
+    display: grid;
+    gap: 12px;
+    min-width: 320px;
+  }
+
+  .option-field {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+  }
+
+  .option-field span {
+    font-weight: 600;
+  }
+
+  .option-field input[type="text"],
+  .option-field input[type="number"] {
+    min-width: 260px;
+    padding: 4px 6px;
+  }
+
+  .option-field-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   dialog {
     margin-top: 40px;
     margin-bottom: auto;
@@ -482,13 +510,6 @@
 
           <li><a href="#" data-action="fNew"   data-i18n="fNew">New Schematic</a></li>
           <li><a href="#" data-action="fOpen"  data-i18n="fOpen">Open Schematic</a></li>
-
-          <li class="has-submenu">
-            <a href="#" data-i18n="fOpenExample">Open examples</a>
-            <ul class="submenu" id="openExampleList">
-              <li><a href="#" data-i18n="examplesLoading">Loading examples...</a></li>
-            </ul>
-          </li>
 
           <li class="has-submenu">
             <a href="#" data-i18n="fSave">Save Schematic</a>
@@ -640,6 +661,7 @@
         <label title="Bottom center"><input type="checkbox" name="labelPosition" value="bc"></label>
         <label title="Bottom right"><input type="checkbox" name="labelPosition" value="br"></label>
       </div>
+      <div id="optionFields" class="option-fields" style="display:none;"></div>
       <div style="margin-top: 16px;">
         <button id="confirmBtn" value="default">Accept</button>
         <button id="cancelBtn" value="cancel" formnovalidate>Cancel</button>
@@ -943,7 +965,6 @@ const translations = {
     fSwap: 'Swap Screen',
     fNew: 'New Schematic',
     fOpen: 'Open Schematic',
-    fOpenExample: 'Open examples',
     fSave: 'Save Schematic',
     fSaveStudent: 'Student',
     fSaveTeacher: 'Teacher',
@@ -955,9 +976,6 @@ const translations = {
     exportMenu: 'Export',
     fCompare: 'Compare Files',
     fAbout: 'About...',
-    examplesMenu: 'Examples',
-    examplesLoading: 'Loading examples...',
-    examplesEmpty: 'No examples found',
     singleMenu: 'Single',
     doubleMenu: 'Double',
     multipleMenu: 'Multiple',
@@ -1031,7 +1049,6 @@ const translations = {
     fSwap: 'Cambiar pantalla',
     fNew: 'Nuevo Esquema',
     fOpen: 'Abrir Esquema',
-    fOpenExample: 'Abrir ejemplos',
     fSave: 'Guardar Esquema',
     fSaveStudent: 'Alumno',
     fSaveTeacher: 'Profesor',
@@ -1043,9 +1060,6 @@ const translations = {
     exportMenu: 'Exportar',
     fCompare: 'Comparar Archivos',
     fAbout: 'Sobre...',
-    examplesMenu: 'Ejemplos',
-    examplesLoading: 'Cargando ejemplos...',
-    examplesEmpty: 'No se encontraron ejemplos',
     singleMenu: 'Simple',
     doubleMenu: 'Doble',
     multipleMenu: 'Múltiple',
@@ -7181,7 +7195,6 @@ class UIController {
     this.positionCompInit = {x:0, y:0};
 
     this.canvas.addEventListener('mousedown', e => this._onDown(e));
-    this.canvas.addEventListener('dblclick', e => this._onDoubleClick(e));
     window.addEventListener('mousemove', e => this._onMove(e));
     window.addEventListener('mouseup', e => this._onUp(e));
     window.addEventListener("resize", e => this._resizeCanvas());
@@ -7258,83 +7271,101 @@ class UIController {
     return position;
   }
 
-  _optionPrompts(comp) {
-    const prompts = [];
-    if (componentSupportsLabel(comp.type)) {
-      prompts.push({key: 'label', message: 'Label (empty = auto):', value: forcedComponentLabel(comp)});
-      prompts.push({key: 'labelPosition', message: 'Label position:', value: getComponentLabelPosition(comp), type: 'labelPositionGrid'});
-      prompts.push({key: 'labelOffsetX', message: 'Label offset X:', value: getComponentLabelOffset(comp, 'x'), type: 'number'});
-      prompts.push({key: 'labelOffsetY', message: 'Label offset Y:', value: getComponentLabelOffset(comp, 'y'), type: 'number'});
-    }
+  _labelOptionFields(comp) {
+    if (!componentSupportsLabel(comp.type)) return [];
+    return [
+      {key: 'label', message: 'Label (empty = auto):', value: forcedComponentLabel(comp), type: 'text'},
+      {key: 'labelPosition', message: 'Label position:', value: getComponentLabelPosition(comp), type: 'labelPositionGrid'},
+      {key: 'labelOffsetX', message: 'Label offset X:', value: getComponentLabelOffset(comp, 'x'), type: 'number'},
+      {key: 'labelOffsetY', message: 'Label offset Y:', value: getComponentLabelOffset(comp, 'y'), type: 'number'},
+    ];
+  }
+
+  _functionalOptionFields(comp) {
+    const fields = [];
+    const add = (key, message, type='text', value=comp.options[key]) => {
+      fields.push({key, message, type, value});
+    };
+
     if (comp.type === 'Text') {
-      prompts.push({key: 'text', message: 'Text:'});
+      add('text', 'Text:', 'text', comp.options.text || '');
     }
     if (comp.type === 'ValveFlow') {
-      prompts.push({key: 'conductance', message: 'Conductance (10-1000):'});
+      add('conductance', 'Conductance (10-1000):', 'number');
     }
     if (comp.type === 'PneumaticFilter') {
-      prompts.push({key: 'conductance', message: 'Conductance (50-' + conductanceBase + '):'});
+      add('conductance', 'Conductance (50-' + conductanceBase + '):', 'number');
     }
     if (comp.type === 'Compressor') {
-      prompts.push({key: 'pressure', message: 'Pressure (0.5 - ' + compressorPressure + ' bar):'});
+      add('pressure', 'Pressure (0.5 - ' + compressorPressure + ' bar):', 'number');
     }
     if (['PressureReducer', 'BackPressureRegulator'].includes(comp.type)) {
-      prompts.push({key: 'pressure', message: 'Pressure setting (0.1 - ' + compressorPressure + ' bar):'});
+      add('pressure', 'Pressure setting (0.1 - ' + compressorPressure + ' bar):', 'number');
     }
     if (comp.type === 'DifferentialPressureSwitch') {
-      prompts.push({key: 'pressure', message: 'HP pressure setting (0.1 - ' + processPressureMax + ' bar):'});
-      prompts.push({key: 'inverse', message: 'Inverse operation:', type: 'checkbox'});
-      prompts.push({key: 'exhaustConductance', message: 'Exhaust conductance (10-' + conductanceBase + '):'});
+      add('pressure', 'HP pressure setting (0.1 - ' + processPressureMax + ' bar):', 'number');
+      add('inverse', 'Inverse operation:', 'checkbox');
+      add('exhaustConductance', 'Exhaust conductance (10-' + conductanceBase + '):', 'number');
     }
     if (['DcsPilot', 'ProcessDcsPilot'].includes(comp.type)) {
-      prompts.push({key: 'pressure', message: 'S pressure setting (0.1 - ' + processPressureMax + ' bar):'});
-      prompts.push({key: 'feedConductance', message: 'F-C conductance (10-' + conductanceBase + '):'});
-      prompts.push({key: 'exhaustConductance', message: 'EX conductance (10-' + conductanceBase + '):'});
+      add('pressure', 'S pressure setting (0.1 - ' + processPressureMax + ' bar):', 'number');
+      add('feedConductance', 'F-C conductance (10-' + conductanceBase + '):', 'number');
+      add('exhaustConductance', 'EX conductance (10-' + conductanceBase + '):', 'number');
     }
     if (comp.type === 'ProcessReservoir') {
-      prompts.push({key: 'pressureMin', message: 'Process pressure min (0 - ' + processPressureMax + ' bar):'});
-      prompts.push({key: 'pressureMax', message: 'Process pressure max (0 - ' + processPressureMax + ' bar):'});
-      prompts.push({key: 'period', message: 'Period (0.1 - 3600 s):'});
+      add('pressureMin', 'Process pressure min (0 - ' + processPressureMax + ' bar):', 'number');
+      add('pressureMax', 'Process pressure max (0 - ' + processPressureMax + ' bar):', 'number');
+      add('period', 'Period (0.1 - 3600 s):', 'number');
     }
     if (comp.type === 'PilotOperatedPressureReliefValve') {
-      prompts.push({key: 'ratioPercent', message: 'Valve ratio (0 - 100 %):'});
-      prompts.push({key: 'reliefRate', message: 'Open relief rate (bar/s, stored negative):'});
+      add('ratioPercent', 'Valve ratio (0 - 100 %):', 'number');
+      add('reliefRate', 'Open relief rate (bar/s, stored negative):', 'number');
     }
     if (['Valve32r', 'Roller'].includes(comp.type)) {
-      prompts.push({key: 'reference', message: 'Reference:'});
+      add('reference', 'Reference:', 'text', comp.options.reference || '');
     }
     if (comp.type === 'AirTank') {
-      prompts.push({key: 'volume', message: 'Volume (20-10000 cm3):'});
+      add('volume', 'Volume (20-10000 cm3):', 'number');
     }
     if (comp.type === 'VisualIndicator') {
-      prompts.push({key: 'threshold', message: 'Air presence threshold (0.05 - ' + compressorPressure + ' bar):'});
+      add('threshold', 'Air presence threshold (0.05 - ' + compressorPressure + ' bar):', 'number');
     }
     if (['Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
-      prompts.push({key: 'massLoad', message: 'Mass Load (kg):'});
+      add('massLoad', 'Mass Load (kg):', 'number');
     }
-    return prompts;
+    return fields;
+  }
+
+  _optionGroups(comp) {
+    const groups = [];
+    const labelFields = this._labelOptionFields(comp);
+    const functionalFields = this._functionalOptionFields(comp);
+
+    if (labelFields.length > 0) {
+      groups.push({key: 'label', title: 'Label', fields: labelFields});
+    }
+    if (functionalFields.length > 0) {
+      groups.push({key: 'functional', title: 'Functional options', fields: functionalFields});
+    }
+    return groups;
+  }
+
+  _openFunctionalOptions(comp) {
+    if (textPrompt.open) return false;
+    const fields = this._functionalOptionFields(comp);
+    if (fields.length === 0) return false;
+    componentEdit = comp;
+    optionGroupAssignSequence([{key: 'functional', title: 'Functional options', fields}]);
+    return true;
   }
 
   _openOptions(comp) {
     if (textPrompt.open) return false;
-    const prompts = this._optionPrompts(comp);
-    if (prompts.length === 0) return false;
+    const groups = this._optionGroups(comp);
+    if (groups.length === 0) return false;
     componentEdit = comp;
-    textPromptAssignSequence(prompts);
+    optionGroupAssignSequence(groups);
     return true;
-  }
-
-  _onDoubleClick(e) {
-    e.preventDefault();
-    const position = this._getMousePos(e);
-    for (const comp of this.engine.components) {
-      if (comp.nearRotated(position)) {
-        this._openOptions(comp);
-        break;
-      }
-    }
-    this.renderer.draw();
-    updateControlHighlights();
   }
 
   _onDown(e) {
@@ -7428,12 +7459,10 @@ class UIController {
 
       // Draw Text
       if (componentType === 'Text') {
-        componentEdit = comp;
-        textPromptAssign('text', 'Text:');
+        this._openFunctionalOptions(comp);
       }
       if (['Valve32r', 'Roller'].includes(componentType)) {
-        componentEdit = comp;
-        textPromptAssign('reference', 'Reference:');
+        this._openFunctionalOptions(comp);
       }
 
       // Draw pipe
@@ -7698,69 +7727,6 @@ async function openFile(filename) {
     }
   } catch (error) {
     console.error("Error:", error);
-  }
-}
-
-function exampleMenuText(key) {
-  const lang = translations[globalLang] ? globalLang : 'en';
-  return translations[lang][key] || translations.en[key] || key;
-}
-
-function exampleDisplayName(filename) {
-  return filename.replace(/\.[^/.]+$/, '');
-}
-
-async function loadExampleMenu() {
-  const exampleList = document.getElementById('openExampleList');
-  if (!exampleList) return;
-
-  try {
-    const answer = await fetch('./examples-manifest.json', {cache: 'no-store'});
-    if (!answer.ok) {
-      throw new Error('Could not read examples manifest');
-    }
-
-    const examples = await answer.json();
-    exampleList.innerHTML = '';
-
-    if (!Array.isArray(examples) || examples.length === 0) {
-      const item = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = '#';
-      link.textContent = exampleMenuText('examplesEmpty');
-      item.appendChild(link);
-      exampleList.appendChild(item);
-      return;
-    }
-
-    for (const example of examples) {
-      const filename = (typeof example === 'string') ? example : example.file;
-      if (!filename) continue;
-
-      const item = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = './index.html?loadFile=examples/' + encodeURIComponent(filename);
-      link.textContent = example.name || exampleDisplayName(filename);
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        openFile('./examples/' + encodeURIComponent(filename));
-        document.querySelectorAll(".submenu").forEach(sm =>
-          sm.classList.remove("active")
-        );
-      });
-      item.appendChild(link);
-      exampleList.appendChild(item);
-    }
-  }
-  catch (error) {
-    console.error('Error loading examples:', error);
-    exampleList.innerHTML = '';
-    const item = document.createElement('li');
-    const link = document.createElement('a');
-    link.href = '#';
-    link.textContent = exampleMenuText('examplesEmpty');
-    item.appendChild(link);
-    exampleList.appendChild(item);
   }
 }
 
@@ -8187,6 +8153,7 @@ const checkboxInputRow = document.getElementById('checkboxInputRow');
 const checkboxInput = document.getElementById('checkboxInput');
 const checkboxText = document.getElementById('checkboxText');
 const labelPositionGrid = document.getElementById('labelPositionGrid');
+const optionFields = document.getElementById('optionFields');
 const messageInput = document.getElementById('messageInput');
 
 const engine = new Engine();
@@ -8194,24 +8161,9 @@ const renderer = new Renderer(canvas, engine);
 const ui = new UIController(canvas, engine, renderer);
 let last = performance.now();
 
-const labelPositionInputs = labelPositionGrid
-  ? [...labelPositionGrid.querySelectorAll('input[name="labelPosition"]')]
-  : [];
-
-labelPositionInputs.forEach(input => {
-  input.addEventListener('change', () => {
-    if (!input.checked) return;
-    labelPositionInputs.forEach(other => {
-      if (other !== input) other.checked = false;
-    });
-  });
-});
-
-
 function firstSetupApp() {
   ui._resizeCanvas();
   navigatorLang();
-  loadExampleMenu();
   initToolPreviews();
   initBomPanel();
   updateControlHighlights();
@@ -8236,54 +8188,22 @@ function snap(v, gr=grid) {
 }
 
 
-function textPromptAssignSequence(prompts) {
-  if (!componentEdit || prompts.length === 0) {
+function optionGroupAssignSequence(groups) {
+  if (!componentEdit || groups.length === 0) {
     componentEdit = null;
     return;
   }
-  const [prompt, ...nextPrompts] = prompts;
-  textPromptAssign(prompt.key, prompt.message, () => textPromptAssignSequence(nextPrompts), prompt.value, prompt.type);
-}
-
-
-function textPromptAssign(key, message, afterClose=null, value=null, type='text') {
-  const content = (value !== null) ? value : componentEdit.options[key];
-  textPromptDialog(content, message, type);
+  const [group, ...nextGroups] = groups;
+  optionGroupDialog(group);
 
   textPrompt.addEventListener('close', () => {
-    if (textPrompt.returnValue !== 'cancel' && componentEdit) {
-      if (type === 'checkbox') {
-        componentEdit.options[key] = checkboxInput.checked;
-        componentEdit.validateOptions();
-      }
-      else if (type === 'labelPositionGrid') {
-        assignLabelPosition(componentEdit, selectedLabelPositionGridValue());
-      }
-      else {
-        const text = textInput.value.trim();
-        if (key === 'label') {
-          const result = assignForcedComponentLabel(componentEdit, text);
-          if (!result.ok) {
-            window.alert(result.message);
-          }
-        }
-        else if (text.length > 0) {
-          if (['labelOffsetX', 'labelOffsetY'].includes(key)) {
-            assignLabelOffset(componentEdit, key, text);
-          }
-          else {
-            componentEdit.options[key] = text;
-            componentEdit.validateOptions();
-          }
-        }
-        else if (['labelOffsetX', 'labelOffsetY'].includes(key)) {
-          assignLabelOffset(componentEdit, key, 0);
-        }
-      }
+    let shouldContinue = (textPrompt.returnValue !== 'cancel');
+    if (shouldContinue && componentEdit) {
+      shouldContinue = assignOptionGroup(componentEdit, group);
       renderer.draw();
     }
-    if (afterClose) {
-      afterClose();
+    if (shouldContinue && nextGroups.length > 0) {
+      optionGroupAssignSequence(nextGroups);
     }
     else {
       componentEdit = null;
@@ -8292,43 +8212,158 @@ function textPromptAssign(key, message, afterClose=null, value=null, type='text'
 }
 
 
-function selectedLabelPositionGridValue() {
-  const selected = labelPositionInputs.find(input => input.checked);
-  return selected ? selected.value : labelPositionDefault;
+function assignOptionGroup(comp, group) {
+  if (!comp || !group) return true;
+  if (group.key === 'label') {
+    return assignLabelOptionGroup(comp, group.fields);
+  }
+  return assignFunctionalOptionGroup(comp, group.fields);
 }
 
 
-function setLabelPositionGridValue(value) {
-  const position = normalizeLabelPosition(value);
-  labelPositionInputs.forEach(input => {
-    input.checked = (input.value === position);
-    input.title = labelPositionNames[input.value] || input.value;
-  });
+function assignLabelOptionGroup(comp, fields) {
+  const labelField = fields.find(field => field.key === 'label');
+  const labelValue = labelField ? readOptionFieldValue(labelField) : forcedComponentLabel(comp);
+  const result = assignForcedComponentLabel(comp, labelValue);
+  if (!result.ok) {
+    window.alert(result.message);
+    return false;
+  }
+
+  const positionField = fields.find(field => field.key === 'labelPosition');
+  if (positionField) {
+    assignLabelPosition(comp, readOptionFieldValue(positionField));
+  }
+
+  const offsetXField = fields.find(field => field.key === 'labelOffsetX');
+  const offsetYField = fields.find(field => field.key === 'labelOffsetY');
+  if (offsetXField) assignLabelOffset(comp, 'labelOffsetX', readOptionFieldValue(offsetXField));
+  if (offsetYField) assignLabelOffset(comp, 'labelOffsetY', readOptionFieldValue(offsetYField));
+  return true;
 }
 
 
-function textPromptDialog(content='Text', message='Value:', type='text') {
-  messageInput.innerText = message;
-  const isCheckbox = (type === 'checkbox');
-  const isLabelPositionGrid = (type === 'labelPositionGrid');
-  textInput.style.display = (!isCheckbox && !isLabelPositionGrid) ? '' : 'none';
-  checkboxInputRow.style.display = isCheckbox ? 'flex' : 'none';
-  if (labelPositionGrid) {
-    labelPositionGrid.style.display = isLabelPositionGrid ? 'grid' : 'none';
+function assignFunctionalOptionGroup(comp, fields) {
+  let changed = false;
+  for (const field of fields) {
+    const value = readOptionFieldValue(field);
+    if (field.type === 'checkbox') {
+      comp.options[field.key] = !!value;
+      changed = true;
+    }
+    else if (field.type === 'number') {
+      const text = String(value).trim();
+      if (text.length > 0) {
+        comp.options[field.key] = text;
+        changed = true;
+      }
+    }
+    else {
+      comp.options[field.key] = String(value);
+      changed = true;
+    }
   }
-  if (type === 'checkbox') {
-    checkboxInput.checked = (content === true || content === 'true');
-    checkboxText.innerText = 'Enabled';
+  if (changed) {
+    comp.validateOptions();
   }
-  else if (isLabelPositionGrid) {
-    setLabelPositionGridValue(content);
+  return true;
+}
+
+
+function readOptionFieldValue(field) {
+  if (!optionFields) return '';
+  if (field.type === 'labelPositionGrid') {
+    const selected = [...optionFields.querySelectorAll('input[type="checkbox"]')]
+      .find(input => input.dataset.optionKey === field.key && input.checked);
+    return selected ? selected.value : labelPositionDefault;
   }
-  else {
-    textInput.type = (type === 'number') ? 'number' : 'text';
-    textInput.step = (type === 'number') ? 'any' : '';
-    textInput.value = content;
+  const input = [...optionFields.querySelectorAll('input, textarea')]
+    .find(element => element.dataset.optionKey === field.key);
+  if (!input) return '';
+  if (field.type === 'checkbox') return input.checked;
+  return input.value;
+}
+
+
+function optionGroupDialog(group) {
+  messageInput.innerText = group.title || 'Options';
+  textInput.style.display = 'none';
+  checkboxInputRow.style.display = 'none';
+  if (labelPositionGrid) labelPositionGrid.style.display = 'none';
+  if (!optionFields) return;
+  optionFields.innerHTML = '';
+  optionFields.style.display = 'grid';
+
+  for (const field of group.fields) {
+    optionFields.appendChild(createOptionField(field));
   }
   textPrompt.showModal();
+}
+
+
+function createOptionField(field) {
+  const wrapper = document.createElement(field.type === 'checkbox' ? 'label' : 'div');
+  wrapper.className = field.type === 'checkbox'
+    ? 'option-field option-field-checkbox'
+    : 'option-field';
+
+  if (field.type === 'checkbox') {
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.dataset.optionKey = field.key;
+    input.checked = (field.value === true || field.value === 'true');
+    const text = document.createElement('span');
+    text.innerText = field.message;
+    wrapper.appendChild(input);
+    wrapper.appendChild(text);
+    return wrapper;
+  }
+
+  const text = document.createElement('span');
+  text.innerText = field.message;
+  wrapper.appendChild(text);
+
+  if (field.type === 'labelPositionGrid') {
+    wrapper.appendChild(createOptionLabelPositionGrid(field));
+    return wrapper;
+  }
+
+  const input = document.createElement('input');
+  input.type = (field.type === 'number') ? 'number' : 'text';
+  input.step = (field.type === 'number') ? 'any' : '';
+  input.dataset.optionKey = field.key;
+  input.value = (field.value !== undefined && field.value !== null) ? field.value : '';
+  wrapper.appendChild(input);
+  return wrapper;
+}
+
+
+function createOptionLabelPositionGrid(field) {
+  const gridElement = document.createElement('div');
+  gridElement.className = 'label-position-grid';
+  const current = normalizeLabelPosition(field.value);
+
+  for (const value of labelPositionValues) {
+    const label = document.createElement('label');
+    label.title = labelPositionNames[value] || value;
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = value;
+    input.dataset.optionKey = field.key;
+    input.checked = (value === current);
+    input.addEventListener('change', () => {
+      if (!input.checked) return;
+      gridElement.querySelectorAll('input').forEach(other => {
+        if (other !== input) other.checked = false;
+      });
+    });
+
+    label.appendChild(input);
+    gridElement.appendChild(label);
+  }
+
+  return gridElement;
 }
 
 

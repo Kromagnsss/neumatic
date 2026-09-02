@@ -30,7 +30,8 @@ Instructions durables pour les agents travaillant sur ce depot.
 
 - Les commandes d'edition et de simulation doivent rester visibles et garder une surbrillance claire quand un mode est actif.
 - Les options de composant servent aux reglages; les actions d'edition comme flip/rotate restent des boutons d'edition, sauf demande explicite contraire.
-- Un double clic sur un composant doit ouvrir ses options quand le composant en possede.
+- Les options d'un composant s'ouvrent uniquement via le mode Options, sauf demande explicite contraire.
+- Regrouper les options par famille logique afin de limiter le nombre d'invites successives.
 
 ## Build et verification
 
