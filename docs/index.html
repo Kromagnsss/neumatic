@@ -128,10 +128,32 @@
     padding: 8px;
     box-sizing: border-box;
     z-index: 900;
+    display: flex;
+    flex-direction: column;
   }
 
   .tool-family {
     margin-bottom: 12px;
+  }
+
+  .tool-family[data-family="basic"] {
+    order: 1;
+  }
+
+  .tool-family[data-family="valves"] {
+    order: 2;
+  }
+
+  .tool-family[data-family="aux"] {
+    order: 3;
+  }
+
+  .tool-family[data-family="cylinders"] {
+    order: 4;
+  }
+
+  .tool-family[data-family="process"] {
+    order: 5;
   }
 
   .tool-family h2 {
@@ -192,6 +214,10 @@
     border: 0;
     border-radius: 0;
     background: #fff;
+  }
+
+  .tool-preview-process {
+    background: #ffe8e8;
   }
 
   .tool-symbol.round {
@@ -530,7 +556,7 @@
   </nav>
 
   <aside id="toolSidebar" class="tool-sidebar">
-    <section class="tool-family">
+    <section class="tool-family" data-family="valves">
       <h2 data-i18n="valvesMenu">Valves</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cValve22m"><span class="tool-symbol">2/2</span><span class="tool-label" data-i18n="cValve22m">Valve 2/2 manual</span></button>
@@ -546,7 +572,7 @@
       </div>
     </section>
 
-    <section class="tool-family">
+    <section class="tool-family" data-family="aux">
       <h2 data-i18n="auxValvesMenu">Aux. valves</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cValveNret"><span class="tool-symbol">>|</span><span class="tool-label" data-i18n="cValveNret">Non-return valve</span></button>
@@ -565,7 +591,7 @@
       </div>
     </section>
 
-    <section class="tool-family">
+    <section class="tool-family" data-family="process">
       <h2 data-i18n="processMenu">Process</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cProcessReservoir"><span class="tool-symbol">500</span><span class="tool-label" data-i18n="cProcessReservoir">Process reservoir</span></button>
@@ -579,7 +605,7 @@
       </div>
     </section>
 
-    <section class="tool-family">
+    <section class="tool-family" data-family="cylinders">
       <h2 data-i18n="cylinderMenu">Cylinders</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cCylinder1"><span class="tool-symbol">⇥</span><span class="tool-label" data-i18n="cCylinder1">Single-acting</span></button>
@@ -588,7 +614,7 @@
       </div>
     </section>
 
-    <section class="tool-family">
+    <section class="tool-family" data-family="basic">
       <h2 data-i18n="basicMenu">Basic</h2>
       <div class="tool-grid">
         <button class="tool-button component-tool" data-action="cPipe"><span class="tool-symbol">─</span><span class="tool-label" data-i18n="cPipe">Pipe</span></button>
@@ -6568,6 +6594,24 @@ function createPreviewComponent(type) {
 }
 
 
+const processPreviewBackgroundColor = '#ffe8e8';
+const processPreviewTypes = new Set([
+  'ProcessReservoir',
+  'PilotOperatedPressureReliefValve',
+  'ProcessDcsPilot',
+  'ProcessPipe',
+  'ProcessEscape',
+  'ProcessIsolationValve',
+  'ProcessTestPort',
+  'ProcessManometer',
+]);
+
+
+function isProcessPreviewType(type) {
+  return processPreviewTypes.has(type);
+}
+
+
 function toolPreviewConfig(type) {
   const defaults = {scale: 0.48, offsetX: 0, offsetY: 0};
   const configs = {
@@ -6610,7 +6654,7 @@ function drawToolPreview(canvas, type) {
   const config = toolPreviewConfig(type);
   ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
   ctx.clearRect(0, 0, cssWidth, cssHeight);
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = isProcessPreviewType(type) ? processPreviewBackgroundColor : '#fff';
   ctx.fillRect(0, 0, cssWidth, cssHeight);
   ctx.save();
   ctx.translate(cssWidth / 2 + config.offsetX, cssHeight / 2 + config.offsetY);
@@ -6628,6 +6672,9 @@ function initToolPreviews() {
 
     const preview = document.createElement('canvas');
     preview.className = 'tool-symbol tool-preview';
+    if (isProcessPreviewType(type)) {
+      preview.classList.add('tool-preview-process');
+    }
     preview.setAttribute('aria-hidden', 'true');
     symbol.replaceWith(preview);
     drawToolPreview(preview, type);
