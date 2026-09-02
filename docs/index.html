@@ -800,6 +800,9 @@ const viewZoomMin = 0.25;
 const viewZoomMax = 4;
 const viewZoomStep = 1.2;
 const viewZoomAllMargin = 40;
+const pipeCrossingHalfGap = 7;
+const pipeCrossingBridgeHeight = 7;
+const geometryEpsilon = 1e-6;
 const undoStackLimit = 50;
 const airPressure = 1; // bar absolute
 const compressorPressure = 6; // bar relative
@@ -1531,15 +1534,18 @@ class ComponentBase {
   drawPipe(ctx, color=defaultColor) {
     if (this.selected) color = selectedColor;
 
+    ctx.save();
     ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.fillStyle = color;
     ctx.strokeStyle = color;
     ctx.fillRect(this.init.x-lineWidth, this.init.y-lineWidth, lineWidth*2, lineWidth*2);
     ctx.fillRect(this.end.x-lineWidth, this.end.y-lineWidth, lineWidth*2, lineWidth*2);
-    ctx.moveTo(this.init.x, this.init.y);
-    ctx.lineTo(this.end.x, this.end.y);
+    drawPipeBridgePath(ctx, this.init, this.end, this.crossingBridges || []);
     ctx.stroke();
+    ctx.restore();
   }
 
   drawPort(ctx, pos_x, pos_y, size_x, size_y, color=defaultColor) {
@@ -6452,6 +6458,154 @@ function canvasCenterPosition() {
 }
 
 
+function isPipeComponent(comp) {
+  return comp && ['Pipe', 'ProcessPipe'].includes(comp.type);
+}
+
+
+function pipeComponentDomain(comp) {
+  return (comp && comp.type === 'ProcessPipe') ? 'process' : 'pneumatic';
+}
+
+
+function sameSchematicPoint(a, b, tolerance=0.001) {
+  return !!a && !!b &&
+    Math.abs(a.x - b.x) <= tolerance &&
+    Math.abs(a.y - b.y) <= tolerance;
+}
+
+
+function pipeEndpointAt(comp, point) {
+  return sameSchematicPoint(comp.init, point) || sameSchematicPoint(comp.end, point);
+}
+
+
+function crossProduct(a, b) {
+  return a.x * b.y - a.y * b.x;
+}
+
+
+function pipePointAt(init, end, t) {
+  return {
+    x: init.x + (end.x - init.x) * t,
+    y: init.y + (end.y - init.y) * t,
+  };
+}
+
+
+function segmentIntersection(a, b, c, d) {
+  const r = {x:b.x - a.x, y:b.y - a.y};
+  const s = {x:d.x - c.x, y:d.y - c.y};
+  const denominator = crossProduct(r, s);
+  if (Math.abs(denominator) <= geometryEpsilon) return null;
+
+  const cma = {x:c.x - a.x, y:c.y - a.y};
+  const t = crossProduct(cma, s) / denominator;
+  const u = crossProduct(cma, r) / denominator;
+  if (t < -geometryEpsilon || t > 1 + geometryEpsilon ||
+      u < -geometryEpsilon || u > 1 + geometryEpsilon) {
+    return null;
+  }
+
+  const clampedT = clampNumber(t, 0, 1);
+  const clampedU = clampNumber(u, 0, 1);
+  return {
+    point: pipePointAt(a, b, clampedT),
+    tA: clampedT,
+    tB: clampedU,
+  };
+}
+
+
+function pipesShareSimulatedEndpoint(pipeA, pipeB, point) {
+  return pipeComponentDomain(pipeA) === pipeComponentDomain(pipeB) &&
+    pipeEndpointAt(pipeA, point) &&
+    pipeEndpointAt(pipeB, point);
+}
+
+
+function buildPipeCrossingMap(components) {
+  const crossings = new Map();
+  const pipes = components.filter(isPipeComponent);
+  for (let i = 0; i < pipes.length; i++) {
+    for (let j = i + 1; j < pipes.length; j++) {
+      const pipeA = pipes[i];
+      const pipeB = pipes[j];
+      const intersection = segmentIntersection(pipeA.init, pipeA.end, pipeB.init, pipeB.end);
+      if (!intersection) continue;
+      if (pipesShareSimulatedEndpoint(pipeA, pipeB, intersection.point)) continue;
+
+      const bridgePipe = pipeB;
+      if (!crossings.has(bridgePipe)) {
+        crossings.set(bridgePipe, []);
+      }
+      crossings.get(bridgePipe).push({
+        t: intersection.tB,
+        point: intersection.point,
+      });
+    }
+  }
+
+  for (const bridgeList of crossings.values()) {
+    bridgeList.sort((a, b) => a.t - b.t);
+  }
+  return crossings;
+}
+
+
+function pipeBridgeNormal(init, end) {
+  const dx = end.x - init.x;
+  const dy = end.y - init.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= geometryEpsilon) return {x:0, y:-1};
+  if (Math.abs(dx) >= Math.abs(dy) * 1.5) return {x:0, y:-1};
+  if (Math.abs(dy) >= Math.abs(dx) * 1.5) return {x:-1, y:0};
+  let normal = {x:dy / length, y:-dx / length};
+  if (normal.y > 0) {
+    normal = {x:-normal.x, y:-normal.y};
+  }
+  return normal;
+}
+
+
+function drawPipeBridgePath(ctx, init, end, bridges=[]) {
+  const length = Math.hypot(end.x - init.x, end.y - init.y);
+  ctx.beginPath();
+  ctx.moveTo(init.x, init.y);
+  if (length <= geometryEpsilon || bridges.length === 0) {
+    ctx.lineTo(end.x, end.y);
+    return;
+  }
+
+  const normal = pipeBridgeNormal(init, end);
+  const halfGapT = pipeCrossingHalfGap / length;
+  let currentT = 0;
+
+  for (const bridge of bridges) {
+    const bridgeT = clampNumber(bridge.t, 0, 1);
+    let startT = clampNumber(bridgeT - halfGapT, 0, 1);
+    let endT = clampNumber(bridgeT + halfGapT, 0, 1);
+    if (endT <= currentT + geometryEpsilon) continue;
+    if (startT < currentT) startT = currentT;
+
+    const start = pipePointAt(init, end, startT);
+    const bridgeEnd = pipePointAt(init, end, endT);
+    const center = pipePointAt(init, end, bridgeT);
+    const control = {
+      x: center.x + normal.x * pipeCrossingBridgeHeight,
+      y: center.y + normal.y * pipeCrossingBridgeHeight,
+    };
+    ctx.lineTo(start.x, start.y);
+    ctx.quadraticCurveTo(control.x, control.y, bridgeEnd.x, bridgeEnd.y);
+    currentT = endT;
+  }
+
+  if (currentT < 1 - geometryEpsilon) {
+    ctx.lineTo(end.x, end.y);
+  }
+}
+
+
 function currentViewport() {
   return {
     zoom: viewZoom,
@@ -7452,6 +7606,12 @@ class Renderer{
     if (viewport) {
       ctx.translate(viewport.offsetX, viewport.offsetY);
       ctx.scale(viewport.zoom, viewport.zoom);
+    }
+    const pipeCrossings = buildPipeCrossingMap(this.engine.components);
+    for (const comp of this.engine.components) {
+      if (isPipeComponent(comp)) {
+        comp.crossingBridges = pipeCrossings.get(comp) || [];
+      }
     }
     for (const comp of this.engine.components) {
       comp.drawWithRotation(ctx);
