@@ -37,6 +37,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Les options d'un composant s'ouvrent uniquement via le mode Options, sauf demande explicite contraire.
 - Regrouper les options par famille logique afin de limiter le nombre d'invites successives.
 - Les actions d'edition qui modifient le schema doivent alimenter l'historique undo; les changements de vue, de simulation, d'export et d'ouverture/sauvegarde ne doivent pas y entrer.
+- Les modes globaux de simulation sauvegardes doivent rester compatibles avec les anciens fichiers et restaurables par undo.
 
 ## Build et verification
 
