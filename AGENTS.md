@@ -35,6 +35,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Les options de composant servent aux reglages; les actions d'edition comme flip/rotate restent des boutons d'edition, sauf demande explicite contraire.
 - Les options d'un composant s'ouvrent uniquement via le mode Options, sauf demande explicite contraire.
 - Regrouper les options par famille logique afin de limiter le nombre d'invites successives.
+- Les actions d'edition qui modifient le schema doivent alimenter l'historique undo; les changements de vue, de simulation, d'export et d'ouverture/sauvegarde ne doivent pas y entrer.
 
 ## Build et verification
 

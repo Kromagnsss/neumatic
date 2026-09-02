@@ -245,7 +245,7 @@
   }
 
   .tool-button:hover,
-  .mode-button:hover {
+  .mode-button:hover:not(:disabled) {
     background: #eef5ff;
     border-color: #6d94c7;
   }
@@ -255,6 +255,11 @@
     background: #dbeafe;
     border-color: #1d4ed8;
     box-shadow: inset 0 0 0 1px #1d4ed8;
+  }
+
+  .mode-button:disabled {
+    opacity: 0.45;
+    cursor: default;
   }
 
   .mode-toolbar {
@@ -641,6 +646,7 @@
   <div id="modeToolbar" class="mode-toolbar">
     <div class="mode-group">
       <span class="mode-group-title" data-i18n="editMenu">Edit</span>
+      <button class="mode-button" data-action="eUndo" disabled><span class="mode-icon">↶</span><span data-i18n="eUndo">Undo</span></button>
       <button class="mode-button" data-action="eDelete" data-draw-mode="Delete"><span class="mode-icon">⌫</span><span data-i18n="eDelete">Delete</span></button>
       <button class="mode-button" data-action="eMove" data-draw-mode="Move"><span class="mode-icon">↔↕</span><span data-i18n="eMove">Move</span></button>
       <button class="mode-button" data-action="eOptions" data-draw-mode="Options"><span class="mode-icon">⚙</span><span data-i18n="eOptions">Options</span></button>
@@ -794,6 +800,7 @@ const viewZoomMin = 0.25;
 const viewZoomMax = 4;
 const viewZoomStep = 1.2;
 const viewZoomAllMargin = 40;
+const undoStackLimit = 50;
 const airPressure = 1; // bar absolute
 const compressorPressure = 6; // bar relative
 const processPressureMax = 500; // bar
@@ -809,6 +816,7 @@ let simulationMode = null;
 let viewZoom = 1;
 let viewOffsetX = 0;
 let viewOffsetY = 0;
+let undoStack = [];
 let componentMove = null;
 let componentEdit = null;
 let editPipe = null;
@@ -1078,6 +1086,7 @@ const translations = {
     cEscape: 'Escape',
     cText: 'Text',
     editMenu: 'Edit',
+    eUndo: 'Undo',
     eDelete: 'Delete',
     eMove: 'Move',
     eOptions: 'Options',
@@ -1167,6 +1176,7 @@ const translations = {
     cEscape: 'Escape',
     cText: 'Texto',
     editMenu: 'Editar',
+    eUndo: 'Deshacer',
     eDelete: 'Borrar',
     eMove: 'Mover',
     eOptions: 'Opciones',
@@ -1277,6 +1287,7 @@ document.addEventListener("click", (e) => {
     cCylinder1Out: () => { simulationStop(); drawMode='component'; componentType='Cylinder1Out'; },
     cCylinder2: () => { simulationStop(); drawMode='component'; componentType='Cylinder2'; },
 
+    eUndo: () => { undoLastChange(); },
     eDelete: () => { simulationStop(); drawMode='Delete'; },
     eMove: () => { simulationStop(); drawMode='Move'; },
     eOptions: () => { simulationStop(); drawMode='Options'; },
@@ -1349,6 +1360,10 @@ function updateControlHighlights() {
 
   document.querySelectorAll('.mode-button[data-sim-mode]').forEach(button => {
     button.classList.toggle('is-active', button.dataset.simMode === simulationMode);
+  });
+
+  document.querySelectorAll('.mode-button[data-action="eUndo"]').forEach(button => {
+    button.disabled = undoStack.length === 0;
   });
 
   canvas.classList.toggle('is-pan-mode', drawMode === 'Pan');
@@ -6792,6 +6807,36 @@ function createComponentByType(type, position, endPosition=position) {
 }
 
 
+function componentFromSerializedData(comp) {
+  if (!comp || !comp.type) return null;
+  const position = {x:comp.x, y:comp.y};
+  const newcomp = ['Pipe', 'ProcessPipe'].includes(comp.type)
+    ? createComponentByType(comp.type, comp.init, comp.end)
+    : createComponentByType(comp.type, position);
+  if (!newcomp) return null;
+
+  Object.assign(newcomp.options, comp.options || {});
+  newcomp.validateOptions();
+  if (comp.stamp !== undefined) {
+    newcomp.timestamp = comp.stamp;
+  }
+  return newcomp;
+}
+
+
+function componentsFromSerializedData(schematic) {
+  const components = [];
+  for (const comp of schematic || []) {
+    const newcomp = componentFromSerializedData(comp);
+    if (newcomp) {
+      components.push(newcomp);
+    }
+  }
+  normalizeLoadedComponentLabels(components);
+  return components;
+}
+
+
 function createPreviewComponent(type) {
   if (type === 'Pipe' || type === 'ProcessPipe') {
     return createComponentByType(type, {x:-42, y:0}, {x:42, y:0});
@@ -7467,6 +7512,7 @@ class UIController {
     this.viewPanning = false;
     this.viewPanStart = {x:0, y:0};
     this.viewPanOffsetStart = {x:0, y:0};
+    this.moveUndoSnapshot = null;
     this.hasSizedCanvas = false;
 
     this.canvas.addEventListener('mousedown', e => this._onDown(e));
@@ -7477,6 +7523,14 @@ class UIController {
     window.addEventListener('mouseup', e => this._onUp(e));
     window.addEventListener("resize", e => this._resizeCanvas());
     document.addEventListener("keydown", event => {
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
+        if (!this._isTextEntryEvent(event)) {
+          event.preventDefault();
+          undoLastChange();
+          this.renderer.draw();
+        }
+        return;
+      }
       if (event.key === "Escape") { this._escape(); }
       if (event.key === "Delete") { this._delete(); }
       if (drawMode === null) {
@@ -7486,9 +7540,23 @@ class UIController {
     });
   }
 
+  _isTextEntryEvent(event) {
+    const target = event.target;
+    const tagName = target && target.tagName ? target.tagName.toUpperCase() : '';
+    return !!(
+      textPrompt.open ||
+      (target && target.isContentEditable) ||
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName)
+    );
+  }
+
   _delete() {
     if ((drawMode === 'Move') && (componentMove)) {
+       pushUndoState(this.moveUndoSnapshot || snapshotSchematicState());
+       this.moveUndoSnapshot = null;
        this.engine.deleteComponent(componentMove);
+       componentMove = null;
+       pipeMove = null;
     }
   }
 
@@ -7497,10 +7565,12 @@ class UIController {
     drawMode = null;
     selectedComponentAction = null;
     componentMove = null;
+    this.moveUndoSnapshot = null;
     if (editPipe) {
       this.engine.deleteComponent(editPipe)
+      editPipe = null;
+      trimUndoStateMatchingCurrent();
     }
-    editPipe = null;
     pipeMove = null;
     initPos = null;
     updateControlHighlights();
@@ -7705,6 +7775,7 @@ class UIController {
     if (drawMode === null) {
       for (const comp of this.engine.components) {
         if (['ValveIsol', 'ProcessIsolationValve'].includes(comp.type) && comp.nearRotated(position)) {
+          pushUndoState();
           comp.toggle();
           break;
         }
@@ -7727,6 +7798,7 @@ class UIController {
     if (drawMode === 'Rotate') {
       for (const comp of this.engine.components) {
         if (comp.canRotate() && comp.nearRotated(position)) {
+          pushUndoState();
           comp.options.rotate = comp.getRotation() + 90;
           comp.validateRotationOption();
           this.engine.createNodes();
@@ -7746,6 +7818,7 @@ class UIController {
                'PressureReducer', 'BackPressureRegulator',
                'DifferentialPressureSwitch',
                'Cylinder1', 'Cylinder1Out', 'Cylinder2'].includes(comp.type)) {
+            pushUndoState();
             comp.flip();
             this.engine.createNodes();
             break;
@@ -7766,6 +7839,7 @@ class UIController {
         }
       }
       if (deleteComp) {
+        pushUndoState();
         this.engine.deleteComponent(deleteComp);
       }
       this.renderer.draw();
@@ -7781,9 +7855,11 @@ class UIController {
 
       // Draw Text
       if (componentType === 'Text') {
+        comp._suppressNextOptionUndo = true;
         this._openFunctionalOptions(comp);
       }
       if (['Valve32r', 'Roller'].includes(componentType)) {
+        comp._suppressNextOptionUndo = true;
         this._openFunctionalOptions(comp);
       }
 
@@ -7801,6 +7877,7 @@ class UIController {
           if (editPipe.init.x === editPipe.end.x &&
               editPipe.init.y === editPipe.end.y) {
             this.engine.deleteComponent(editPipe);
+            trimUndoStateMatchingCurrent();
           }
           editPipe = null;
           initPos = null;
@@ -7809,6 +7886,7 @@ class UIController {
 
       // Add component and redraw
       if (comp !== null) {
+        pushUndoState();
         this.engine.addComponent(comp);
       }
       this.renderer.draw();
@@ -7818,6 +7896,10 @@ class UIController {
     if (drawMode === 'Move') {
       if (componentMove !== null) {
         componentMove.selected = false;
+        if (this.moveUndoSnapshot !== null) {
+          pushUndoState(this.moveUndoSnapshot);
+          this.moveUndoSnapshot = null;
+        }
         if (pipeMove === 'init')
           componentMove.moveInit(position);
         else if (pipeMove === 'end')
@@ -7842,6 +7924,7 @@ class UIController {
             this.positionCompInit.x = comp.x;
             this.positionCompInit.y = comp.y;
             componentMove.selected = true;
+            this.moveUndoSnapshot = snapshotSchematicState();
             if (componentMove.type === 'Pipe') {
               pipeMove = near;
             }
@@ -7870,6 +7953,10 @@ class UIController {
     }
 
     if ((drawMode === 'Move') && (componentMove)) {
+      if (this.moveUndoSnapshot !== null) {
+        pushUndoState(this.moveUndoSnapshot);
+        this.moveUndoSnapshot = null;
+      }
       if (pipeMove === 'init') {
         componentMove.moveInit(position);
       }
@@ -7953,6 +8040,7 @@ function aboutWindowShow() {
 
 function resetEditor() {
    engine.reset();
+   clearUndoStack();
    renderer.draw();
 }
 
@@ -7968,57 +8056,69 @@ function loadSchema(schematicJSON) {
      return;
   }
 
-  let components = [];
-  for (const comp of schematic) {
-    newcomp = null;
-    if (comp.type === 'Compressor') newcomp = new Compressor({x:comp.x, y:comp.y});
-    if (comp.type === 'Manometer')  newcomp = new Manometer({x:comp.x, y:comp.y});
-    if (comp.type === 'Escape')     newcomp = new Escape({x:comp.x, y:comp.y});
-    if (comp.type === 'Cylinder1')  newcomp = new Cylinder1({x:comp.x, y:comp.y});
-    if (comp.type === 'Cylinder1Out')  newcomp = new Cylinder1Out({x:comp.x, y:comp.y});
-    if (comp.type === 'Cylinder2')  newcomp = new Cylinder2({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve22m')   newcomp = new Valve22m({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve32b')   newcomp = new Valve32b({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve32m')   newcomp = new Valve32m({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve32p')   newcomp = new Valve32p({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve32ps')  newcomp = new Valve32ps({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve42m')   newcomp = new Valve42m({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve52m')   newcomp = new Valve52m({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve52p')   newcomp = new Valve52p({x:comp.x, y:comp.y});
-    if (comp.type === 'ValveFlow')  newcomp = new ValveFlow({x:comp.x, y:comp.y});
-    if (comp.type === 'ValveIsol')  newcomp = new ValveIsol({x:comp.x, y:comp.y});
-    if (comp.type === 'PressureReducer') newcomp = new PressureReducer({x:comp.x, y:comp.y});
-    if (comp.type === 'BackPressureRegulator') newcomp = new BackPressureRegulator({x:comp.x, y:comp.y});
-    if (comp.type === 'PneumaticFilter') newcomp = new PneumaticFilter({x:comp.x, y:comp.y});
-    if (comp.type === 'TestPort') newcomp = new TestPort({x:comp.x, y:comp.y});
-    if (comp.type === 'VisualIndicator') newcomp = new VisualIndicator({x:comp.x, y:comp.y});
-    if (comp.type === 'DifferentialPressureSwitch') newcomp = new DifferentialPressureSwitch({x:comp.x, y:comp.y});
-    if (comp.type === 'DcsPilot') newcomp = new DcsPilot({x:comp.x, y:comp.y});
-    if (comp.type === 'ProcessDcsPilot') newcomp = new ProcessDcsPilot({x:comp.x, y:comp.y});
-    if (comp.type === 'AirTank') newcomp = new AirTank({x:comp.x, y:comp.y});
-    if (comp.type === 'ProcessReservoir') newcomp = new ProcessReservoir({x:comp.x, y:comp.y});
-    if (comp.type === 'PilotOperatedPressureReliefValve') newcomp = new PilotOperatedPressureReliefValve({x:comp.x, y:comp.y});
-    if (comp.type === 'ProcessIsolationValve') newcomp = new ProcessIsolationValve({x:comp.x, y:comp.y});
-    if (comp.type === 'ProcessEscape') newcomp = new ProcessEscape({x:comp.x, y:comp.y});
-    if (comp.type === 'ProcessTestPort') newcomp = new ProcessTestPort({x:comp.x, y:comp.y});
-    if (comp.type === 'ProcessManometer') newcomp = new ProcessManometer({x:comp.x, y:comp.y});
-    if (comp.type === 'ValveOr')    newcomp = new ValveOr({x:comp.x, y:comp.y});
-    if (comp.type === 'ValveAnd')   newcomp = new ValveAnd({x:comp.x, y:comp.y});
-    if (comp.type === 'Text')       newcomp = new Text({x:comp.x, y:comp.y});
-    if (comp.type === 'Valve32r')   newcomp = new Valve32r({x:comp.x, y:comp.y});
-    if (comp.type === 'Roller')     newcomp = new Roller({x:comp.x, y:comp.y});
-    if (comp.type === 'ValveNret')     newcomp = new ValveNret({x:comp.x, y:comp.y});
-    if (comp.type === 'Pipe')       newcomp = new Pipe(comp.init, comp.end);
-    if (comp.type === 'ProcessPipe') newcomp = new ProcessPipe(comp.init, comp.end);
-    if (newcomp) {
-      Object.assign(newcomp.options, comp.options);
-      newcomp.validateOptions();
-      newcomp.timestamp = comp.stamp;
-      components.push(newcomp);
-    }
+  return componentsFromSerializedData(schematic);
+}
+
+
+function snapshotSchematicState() {
+  return JSON.stringify(engine.components.map(comp => comp.serialize()));
+}
+
+
+function pushUndoState(snapshot=snapshotSchematicState()) {
+  if (undoStack[undoStack.length - 1] === snapshot) return;
+  undoStack.push(snapshot);
+  if (undoStack.length > undoStackLimit) {
+    undoStack.shift();
   }
-  normalizeLoadedComponentLabels(components);
-  return components;
+  updateControlHighlights();
+}
+
+
+function trimUndoStateMatchingCurrent() {
+  if (undoStack[undoStack.length - 1] === snapshotSchematicState()) {
+    undoStack.pop();
+    updateControlHighlights();
+  }
+}
+
+
+function clearUndoStack() {
+  undoStack = [];
+  updateControlHighlights();
+}
+
+
+function restoreSchematicState(snapshot) {
+  const schematic = JSON.parse(snapshot || '[]');
+  engine.components = componentsFromSerializedData(schematic);
+  engine.createNodes();
+  componentMove = null;
+  componentEdit = null;
+  editPipe = null;
+  pipeMove = null;
+  initPos = null;
+  endPos = null;
+  for (const comp of engine.components) {
+    comp.selected = false;
+  }
+  if (textPrompt && textPrompt.open) {
+    textPrompt.returnValue = 'cancel';
+    textPrompt.close();
+  }
+  renderer.draw();
+  updateControlHighlights();
+}
+
+
+function undoLastChange() {
+  if (undoStack.length === 0) {
+    updateControlHighlights();
+    return false;
+  }
+  const snapshot = undoStack.pop();
+  restoreSchematicState(snapshot);
+  return true;
 }
 
 
@@ -8033,6 +8133,7 @@ async function openSchema() {
     if (components) {
       engine.components = components;
       engine.createNodes();
+      clearUndoStack();
       renderer.draw();
     }
   };
@@ -8053,6 +8154,7 @@ async function openFile(filename) {
     if (components) {
       engine.components = components;
       engine.createNodes();
+      clearUndoStack();
       renderer.draw();
     }
   } catch (error) {
@@ -8527,15 +8629,19 @@ function optionGroupAssignSequence(groups) {
   optionGroupDialog(group);
 
   textPrompt.addEventListener('close', () => {
+    const editedComp = componentEdit;
     let shouldContinue = (textPrompt.returnValue !== 'cancel');
-    if (shouldContinue && componentEdit) {
-      shouldContinue = assignOptionGroup(componentEdit, group);
+    if (shouldContinue && editedComp) {
+      shouldContinue = assignOptionGroup(editedComp, group);
       renderer.draw();
     }
-    if (shouldContinue && nextGroups.length > 0) {
+    if (shouldContinue && editedComp && nextGroups.length > 0) {
       optionGroupAssignSequence(nextGroups);
     }
     else {
+      if (editedComp && editedComp._suppressNextOptionUndo) {
+        delete editedComp._suppressNextOptionUndo;
+      }
       componentEdit = null;
     }
   }, { once: true });
@@ -8544,10 +8650,22 @@ function optionGroupAssignSequence(groups) {
 
 function assignOptionGroup(comp, group) {
   if (!comp || !group) return true;
+  const shouldTrackUndo = engine.components.includes(comp) && !comp._suppressNextOptionUndo;
+  const undoSnapshot = shouldTrackUndo ? snapshotSchematicState() : null;
+  let assigned = true;
   if (group.key === 'label') {
-    return assignLabelOptionGroup(comp, group.fields);
+    assigned = assignLabelOptionGroup(comp, group.fields);
   }
-  return assignFunctionalOptionGroup(comp, group.fields);
+  else {
+    assigned = assignFunctionalOptionGroup(comp, group.fields);
+  }
+  if (comp._suppressNextOptionUndo) {
+    delete comp._suppressNextOptionUndo;
+  }
+  if (assigned && shouldTrackUndo && undoSnapshot !== snapshotSchematicState()) {
+    pushUndoState(undoSnapshot);
+  }
+  return assigned;
 }
 
 
