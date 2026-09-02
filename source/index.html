@@ -116,6 +116,18 @@
     background:#f8f8f8;
   }
 
+  .canvas.is-panning {
+    cursor: grabbing;
+  }
+
+  .canvas.is-pan-mode {
+    cursor: grab;
+  }
+
+  .canvas.is-pan-mode.is-panning {
+    cursor: grabbing;
+  }
+
   .tool-sidebar {
     position: fixed;
     left: 0;
@@ -645,6 +657,14 @@
     </div>
 
     <div class="mode-group">
+      <span class="mode-group-title" data-i18n="viewMenu">View</span>
+      <button class="mode-button" data-action="ePan" data-draw-mode="Pan"><span class="mode-icon">↔↕</span><span data-i18n="ePan">PAN</span></button>
+      <button class="mode-button" data-action="vZoomIn"><span class="mode-icon">+</span><span data-i18n="vZoomIn">Zoom +</span></button>
+      <button class="mode-button" data-action="vZoomOut"><span class="mode-icon">−</span><span data-i18n="vZoomOut">Zoom -</span></button>
+      <button class="mode-button" data-action="vZoomAll"><span class="mode-icon">⤢</span><span data-i18n="vZoomAll">Zoom all</span></button>
+    </div>
+
+    <div class="mode-group">
       <span class="mode-group-title" data-i18n="exportMenu">Export</span>
       <button class="mode-button" data-action="fSavePNG"><span class="mode-icon">▣</span><span data-i18n="fExportImage">Image</span></button>
       <button class="mode-button" data-action="fSaveTransparentPNG"><span class="mode-icon">◫</span><span data-i18n="fSaveTransparentPNG">PNG transparent</span></button>
@@ -769,6 +789,10 @@ const textFont = '14px sans-serif';
 const canvasScale = 2;
 const minCanvasWidth = 320 * canvasScale;
 const minCanvasHeight = 320 * canvasScale;
+const viewZoomMin = 0.25;
+const viewZoomMax = 4;
+const viewZoomStep = 1.2;
+const viewZoomAllMargin = 40;
 const airPressure = 1; // bar absolute
 const compressorPressure = 6; // bar relative
 const processPressureMax = 500; // bar
@@ -781,6 +805,9 @@ let drawMode = null;
 let componentType = null;
 let selectedComponentAction = null;
 let simulationMode = null;
+let viewZoom = 1;
+let viewOffsetX = 0;
+let viewOffsetY = 0;
 let componentMove = null;
 let componentEdit = null;
 let editPipe = null;
@@ -1061,6 +1088,11 @@ const translations = {
     sStop: 'Stop',
     sContinue: 'Continue',
     sReset: 'Reset',
+    viewMenu: 'View',
+    ePan: 'PAN',
+    vZoomIn: 'Zoom +',
+    vZoomOut: 'Zoom -',
+    vZoomAll: 'Zoom all',
   },
 
   es: {
@@ -1145,6 +1177,11 @@ const translations = {
     sStop: 'Detener',
     sContinue: 'Continuar',
     sReset: 'Reiniciar',
+    viewMenu: 'Vista',
+    ePan: 'PAN',
+    vZoomIn: 'Zoom +',
+    vZoomOut: 'Zoom -',
+    vZoomAll: 'Ver todo',
   }
 }
 
@@ -1244,6 +1281,14 @@ document.addEventListener("click", (e) => {
     eOptions: () => { simulationStop(); drawMode='Options'; },
     eFlip: () => { simulationStop(); drawMode='Flip'; },
     eRotate: () => { simulationStop(); drawMode='Rotate'; },
+    ePan: () => {
+      drawMode='Pan';
+      selectedComponentAction = null;
+      componentType = null;
+    },
+    vZoomIn: () => { zoomViewAt(viewZoomStep, canvasCenterPosition()); renderer.draw(); },
+    vZoomOut: () => { zoomViewAt(1 / viewZoomStep, canvasCenterPosition()); renderer.draw(); },
+    vZoomAll: () => { zoomViewAll(engine.components); renderer.draw(); },
 
     sInit: () => { simulationInit(); },
     sStep: () => { simulationStep(); },
@@ -1304,6 +1349,8 @@ function updateControlHighlights() {
   document.querySelectorAll('.mode-button[data-sim-mode]').forEach(button => {
     button.classList.toggle('is-active', button.dataset.simMode === simulationMode);
   });
+
+  canvas.classList.toggle('is-pan-mode', drawMode === 'Pan');
 }
 
 
@@ -6368,6 +6415,168 @@ function equipmentComponents(components) {
 }
 
 
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.min(max, Math.max(min, number));
+}
+
+
+function canvasViewSize(targetCanvas=canvas) {
+  return {
+    width: targetCanvas.width / canvasScale,
+    height: targetCanvas.height / canvasScale,
+  };
+}
+
+
+function canvasCenterPosition() {
+  const size = canvasViewSize();
+  return {x:size.width * 0.5, y:size.height * 0.5};
+}
+
+
+function currentViewport() {
+  return {
+    zoom: viewZoom,
+    offsetX: viewOffsetX,
+    offsetY: viewOffsetY,
+  };
+}
+
+
+function screenToSchematicPosition(position) {
+  return {
+    x: (position.x - viewOffsetX) / viewZoom,
+    y: (position.y - viewOffsetY) / viewZoom,
+  };
+}
+
+
+function schematicToScreenPosition(position) {
+  return {
+    x: position.x * viewZoom + viewOffsetX,
+    y: position.y * viewZoom + viewOffsetY,
+  };
+}
+
+
+function zoomViewAt(factor, screenPosition) {
+  const anchor = screenPosition || canvasCenterPosition();
+  const worldAnchor = screenToSchematicPosition(anchor);
+  const nextZoom = clampNumber(viewZoom * factor, viewZoomMin, viewZoomMax);
+  viewZoom = nextZoom;
+  viewOffsetX = anchor.x - worldAnchor.x * viewZoom;
+  viewOffsetY = anchor.y - worldAnchor.y * viewZoom;
+}
+
+
+function includeBoundsPoint(bounds, x, y) {
+  bounds.left = Math.min(bounds.left, x);
+  bounds.top = Math.min(bounds.top, y);
+  bounds.right = Math.max(bounds.right, x);
+  bounds.bottom = Math.max(bounds.bottom, y);
+}
+
+
+function includeBoundsRect(bounds, left, top, right, bottom) {
+  includeBoundsPoint(bounds, left, top);
+  includeBoundsPoint(bounds, right, bottom);
+}
+
+
+function componentLocalToWorld(comp, x, y) {
+  const rotation = (comp.canRotate()) ? comp.getRotation() : 0;
+  if (rotation === 0) {
+    return {x: comp.x + x, y: comp.y + y};
+  }
+
+  const rad = rotation * Math.PI / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return {
+    x: comp.x + x * cos - y * sin,
+    y: comp.y + x * sin + y * cos,
+  };
+}
+
+
+function includeComponentBounds(bounds, comp) {
+  if (['Pipe', 'ProcessPipe'].includes(comp.type)) {
+    includeBoundsRect(
+      bounds,
+      Math.min(comp.init.x, comp.end.x) - 8,
+      Math.min(comp.init.y, comp.end.y) - 8,
+      Math.max(comp.init.x, comp.end.x) + 8,
+      Math.max(comp.init.y, comp.end.y) + 8
+    );
+    return;
+  }
+
+  if (comp.type === 'Text') {
+    const width = Math.max(comp.width || 0, String(comp.options.text || '').length * 8 + 10, 30);
+    includeBoundsRect(bounds, comp.x - 4, comp.y - 16, comp.x + width + 4, comp.y + 10);
+    return;
+  }
+
+  const local = componentLabelBounds[comp.type] || {left:-35, top:-35, right:35, bottom:35};
+  const corners = [
+    componentLocalToWorld(comp, local.left, local.top),
+    componentLocalToWorld(comp, local.right, local.top),
+    componentLocalToWorld(comp, local.right, local.bottom),
+    componentLocalToWorld(comp, local.left, local.bottom),
+  ];
+  for (const corner of corners) {
+    includeBoundsPoint(bounds, corner.x, corner.y);
+  }
+}
+
+
+function includeComponentUnitLabelBounds(bounds, comp, label) {
+  if (!label || !componentSupportsLabel(comp.type)) return;
+  const position = comp.labelPosition();
+  const halfWidth = Math.max(18, String(label).length * 3.5);
+  includeBoundsRect(bounds, position.x - halfWidth, position.y - 7, position.x + halfWidth, position.y + 7);
+}
+
+
+function schematicBounds(components) {
+  const bounds = {left:Infinity, top:Infinity, right:-Infinity, bottom:-Infinity};
+  const labels = buildComponentLabelMap(components);
+
+  for (const comp of components) {
+    includeComponentBounds(bounds, comp);
+    includeComponentUnitLabelBounds(bounds, comp, labels.get(comp));
+  }
+
+  if (!Number.isFinite(bounds.left) || !Number.isFinite(bounds.top) ||
+      !Number.isFinite(bounds.right) || !Number.isFinite(bounds.bottom)) {
+    return null;
+  }
+  return bounds;
+}
+
+
+function zoomViewAll(components) {
+  const bounds = schematicBounds(components);
+  if (!bounds) {
+    viewZoom = 1;
+    viewOffsetX = 0;
+    viewOffsetY = 0;
+    return;
+  }
+
+  const size = canvasViewSize();
+  const sceneWidth = Math.max(bounds.right - bounds.left, 1);
+  const sceneHeight = Math.max(bounds.bottom - bounds.top, 1);
+  const availableWidth = Math.max(size.width - viewZoomAllMargin * 2, 1);
+  const availableHeight = Math.max(size.height - viewZoomAllMargin * 2, 1);
+  viewZoom = clampNumber(Math.min(availableWidth / sceneWidth, availableHeight / sceneHeight), viewZoomMin, viewZoomMax);
+  viewOffsetX = size.width * 0.5 - (bounds.left + sceneWidth * 0.5) * viewZoom;
+  viewOffsetY = size.height * 0.5 - (bounds.top + sceneHeight * 0.5) * viewZoom;
+}
+
+
 function htmlEscape(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -6709,6 +6918,12 @@ function matrixPoint(m, x, y) {
 }
 
 
+function matrixScale(m) {
+  const scale = Math.sqrt(m[0]*m[0] + m[1]*m[1]);
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
+
 function exportXml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -7007,7 +7222,7 @@ class SvgExportContext extends VectorExportContext {
       return;
     }
     this.elements.push('<path d="' + d + '" fill="none" stroke="' +
-      exportXml(state.strokeStyle) + '" stroke-width="' + exportNumber(state.lineWidth) +
+      exportXml(state.strokeStyle) + '" stroke-width="' + exportNumber(state.lineWidth * matrixScale(state.transform)) +
       '" stroke-linecap="' + exportXml(state.lineCap) +
       '" stroke-linejoin="' + exportXml(state.lineJoin) + '"/>');
   }
@@ -7128,7 +7343,7 @@ class DxfExportContext extends VectorExportContext {
     this.entities.push([
       '0','TEXT','8','TEXT','62',String(dxfColorIndex(state.fillStyle)),
       '10',String(p.x),'20',String(p.y),'30','0',
-      '40',String(exportNumber(exportFontSize(state.font))),
+      '40',String(exportNumber(exportFontSize(state.font) * matrixScale(state.transform))),
       '1',safeText,
       '50',String(exportNumber(rotation)),
     ].join('\n'));
@@ -7161,12 +7376,13 @@ class Renderer{
   }
 
   draw() {
+    const size = canvasViewSize(this.canvas);
     this.drawScene(this.ctx, {
       background: 'white',
       showOverlay: true,
       updateBom: true,
-      width: this.canvas.width,
-      height: this.canvas.height,
+      width: size.width,
+      height: size.height,
     });
   }
 
@@ -7176,6 +7392,7 @@ class Renderer{
     const updateBom = options.updateBom !== false;
     const width = options.width || this.canvas.width;
     const height = options.height || this.canvas.height;
+    const viewport = (options.viewport === false) ? null : (options.viewport || currentViewport());
 
     if (background === 'white') {
       ctx.fillStyle = '#fff';
@@ -7185,14 +7402,11 @@ class Renderer{
       ctx.clearRect(0, 0, width, height);
     }
 
-    if (showOverlay) {
-      ctx.textAlign = "start";
-      ctx.font = textFont;
-      ctx.fillStyle = '#aaa';
-      ctx.fillText('Picuino Pneumatic Simulator v' + programVersion, 8, 18);
-      this.drawPosition(mousePosition, ctx);
+    ctx.save();
+    if (viewport) {
+      ctx.translate(viewport.offsetX, viewport.offsetY);
+      ctx.scale(viewport.zoom, viewport.zoom);
     }
-
     for (const comp of this.engine.components) {
       comp.drawWithRotation(ctx);
     }
@@ -7203,25 +7417,35 @@ class Renderer{
         comp.drawUnitLabel(ctx, labels.get(comp));
       }
     }
+    ctx.restore();
+
+    if (showOverlay) {
+      ctx.textAlign = "start";
+      ctx.font = textFont;
+      ctx.fillStyle = '#aaa';
+      ctx.fillText('Picuino Pneumatic Simulator v' + programVersion, 8, 18);
+      this.drawPosition(mousePosition, ctx);
+    }
     if (updateBom) {
       renderBomPanel();
     }
   }
 
   drawPosition(position, ctx=this.ctx) {
+    const size = canvasViewSize(this.canvas);
     if (this.engine.haveTeacherComp()) {
       ctx.fillStyle = '#fff';
     }
     else {
       ctx.fillStyle = '#afa';
     }
-    ctx.fillRect(this.canvas.width*0.5-76, 5, 76, 18);
+    ctx.fillRect(size.width*0.5-76, 5, 76, 18);
     if (position !== null) {
       ctx.textAlign = 'center';
       ctx.font = textFont;
       ctx.fillStyle = '#aaa';
       ctx.fillText(Math.round(position.x) + ',' + Math.round(position.y),
-                   this.canvas.width*0.5-38, 18);
+                   size.width*0.5-38, 18);
       ctx.textAlign = 'left';
     }
   }
@@ -7239,8 +7463,15 @@ class UIController {
     this.grid = grid;
     this.positionMoveInit = {x:0, y:0};
     this.positionCompInit = {x:0, y:0};
+    this.viewPanning = false;
+    this.viewPanStart = {x:0, y:0};
+    this.viewPanOffsetStart = {x:0, y:0};
+    this.hasSizedCanvas = false;
 
     this.canvas.addEventListener('mousedown', e => this._onDown(e));
+    this.canvas.addEventListener('auxclick', e => {
+      if (e.button === 1) e.preventDefault();
+    });
     window.addEventListener('mousemove', e => this._onMove(e));
     window.addEventListener('mouseup', e => this._onUp(e));
     window.addEventListener("resize", e => this._resizeCanvas());
@@ -7261,6 +7492,7 @@ class UIController {
   }
 
   _escape() {
+    this._stopViewPan();
     drawMode = null;
     selectedComponentAction = null;
     componentMove = null;
@@ -7276,6 +7508,11 @@ class UIController {
   _resizeCanvas(e) {
     const canvas = this.canvas;
     const ctx = canvas.getContext('2d');
+    const oldSize = canvasViewSize(canvas);
+    const hasPreviousSize = this.hasSizedCanvas;
+    const centerBeforeResize = hasPreviousSize
+      ? screenToSchematicPosition({x:oldSize.width * 0.5, y:oldSize.height * 0.5})
+      : null;
     const menu = document.querySelector('.menu');
     const sidebar = document.getElementById('toolSidebar');
     const toolbar = document.getElementById('modeToolbar');
@@ -7304,17 +7541,47 @@ class UIController {
     const height = (window.innerHeight - menuHeight - toolbarHeight)*canvasScale;
     canvas.width  = (width < minCanvasWidth) ? minCanvasWidth : width;
     canvas.height = (height < minCanvasHeight) ? minCanvasHeight : height;
+    this.hasSizedCanvas = true;
     canvas.style.width = this.canvas.width/canvasScale + 'px';
     canvas.style.height  = this.canvas.height/canvasScale + 'px';
-    ctx.scale(canvasScale, canvasScale);
+    ctx.setTransform(canvasScale, 0, 0, canvasScale, 0, 0);
+    if (centerBeforeResize) {
+      const newSize = canvasViewSize(canvas);
+      viewOffsetX = newSize.width * 0.5 - centerBeforeResize.x * viewZoom;
+      viewOffsetY = newSize.height * 0.5 - centerBeforeResize.y * viewZoom;
+    }
     this.renderer.draw();
   }
 
-  _getMousePos(e) {
+  _getCanvasScreenPos(e) {
     const r = this.canvas.getBoundingClientRect();
-    const position = {x:e.clientX - r.left, y:e.clientY - r.top};
+    return {x:e.clientX - r.left, y:e.clientY - r.top};
+  }
+
+  _getMousePos(e) {
+    const position = screenToSchematicPosition(this._getCanvasScreenPos(e));
     mousePosition = position;
     return position;
+  }
+
+  _startViewPan(screenPosition) {
+    this.viewPanning = true;
+    this.viewPanStart = screenPosition;
+    this.viewPanOffsetStart = {x:viewOffsetX, y:viewOffsetY};
+    this.canvas.classList.add('is-panning');
+  }
+
+  _updateViewPan(screenPosition) {
+    viewOffsetX = this.viewPanOffsetStart.x + screenPosition.x - this.viewPanStart.x;
+    viewOffsetY = this.viewPanOffsetStart.y + screenPosition.y - this.viewPanStart.y;
+    mousePosition = screenToSchematicPosition(screenPosition);
+    this.renderer.draw();
+  }
+
+  _stopViewPan() {
+    if (!this.viewPanning) return;
+    this.viewPanning = false;
+    this.canvas.classList.remove('is-panning');
   }
 
   _labelOptionFields(comp) {
@@ -7415,6 +7682,14 @@ class UIController {
   }
 
   _onDown(e) {
+    const screenPosition = this._getCanvasScreenPos(e);
+    if (e.button === 1 || (e.button === 0 && drawMode === 'Pan')) {
+      e.preventDefault();
+      this._startViewPan(screenPosition);
+      return;
+    }
+    if (e.button !== 0) return;
+
     let position = this._getMousePos(e);
 
     // Activate manual valves
@@ -7579,6 +7854,13 @@ class UIController {
   }
 
   _onMove(e){
+    const screenPosition = this._getCanvasScreenPos(e);
+    if (this.viewPanning) {
+      e.preventDefault();
+      this._updateViewPan(screenPosition);
+      return;
+    }
+
     let position = this._getMousePos(e);
 
     if ((drawMode === 'component') && (['Pipe', 'ProcessPipe'].includes(componentType)) && (initPos !== null)) {
@@ -7604,6 +7886,7 @@ class UIController {
   }
 
   _onUp(e){
+    this._stopViewPan();
   }
 
 }

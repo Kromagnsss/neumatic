@@ -29,6 +29,8 @@ Instructions durables pour les agents travaillant sur ce depot.
 ## Interface et edition
 
 - Les commandes d'edition et de simulation doivent rester visibles et garder une surbrillance claire quand un mode est actif.
+- Les controles de navigation de la feuille de travail (pan/zoom/zoom all) doivent rester visibles; ils modifient uniquement la vue courante, jamais les coordonnees sauvegardees du schema.
+- Les exports d'image et vectoriels doivent refleter l'affichage courant de la feuille, y compris pan et zoom, sans exporter les panneaux d'interface.
 - Dans le panneau de selection, garder la famille BASIC en premier et la famille PROCESS en dernier; les miniatures process y utilisent un fond rouge clair sans modifier le rendu des composants sur la feuille de travail.
 - Les options de composant servent aux reglages; les actions d'edition comme flip/rotate restent des boutons d'edition, sauf demande explicite contraire.
 - Les options d'un composant s'ouvrent uniquement via le mode Options, sauf demande explicite contraire.
