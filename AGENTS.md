@@ -27,6 +27,7 @@ Instructions durables pour les agents travaillant sur ce depot.
 - Appliquer les memes conventions aux variantes pneumatiques et process quand elles representent le meme type d'equipement.
 - Preserver la compatibilite des anciens fichiers sauvegardes quand des options sont ajoutees.
 - En mode hydraulique, une ligne raccordee a un retour/exhaust doit pouvoir retomber vers 0 bar; eviter les paliers numeriques artificiels sur les purges via vannes directionnelles.
+- Les verins a rappel ressort doivent revenir seuls a la pression de reference du fluide, notamment a 0 bar en hydraulique.
 
 ## Interface et edition
 

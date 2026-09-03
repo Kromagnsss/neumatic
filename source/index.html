@@ -1895,6 +1895,17 @@ class ComponentBase {
     }
   }
 
+  computeFlowToVolume(node, mass, pressure, volume, conductance, dt) {
+    const chamber = {
+      volume,
+      mass,
+      pressure,
+      domain: node.domain,
+    };
+    this.computeFlow(node, chamber, conductance, dt);
+    return chamber;
+  }
+
   serialize() {
     return {type:this.type, stamp:this.timestamp, x:this.x, y:this.y, options:serializableComponentOptions(this)};
   }
@@ -4332,37 +4343,9 @@ class Cylinder1 extends ComponentBase {
     let volume1 = 100*this.position.actual * this.area + this.volumeMin;
     if (this.mass1 === 0) this.mass1 = this.pressure1 * volume1;
 
-    // Compute node1 flow
-    const m1 = node1.mass;
-    const m2 = this.mass1;
-    const n1_vol = node1.volume;
-    const flowConductance = fluidConductance(this.conductance, node1, null);
-
-    let dp = m1 / n1_vol - m2 / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k1_m = dt * dp * flowConductance;
-
-    dp = (m1 - 0.5*k1_m) / n1_vol - (m2 + 0.5*k1_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k2_m = dt * dp * flowConductance;
-
-    dp = (m1 - 0.5*k2_m) / n1_vol - (m2 + 0.5*k2_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k3_m = dt * dp * flowConductance;
-
-    dp = (m1 - k3_m) / n1_vol - (m2 + k3_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k4_m = dt * dp * flowConductance;
-
-    const dm = (k1_m + 2*k2_m + 2*k3_m + k4_m)/6;
-
-    node1.mass -= dm;
-    this.mass1 += dm;
-
-    node1.pressure = pressureFromMass(node1.mass, n1_vol);
-    clampNodeToReference(node1);
-    this.pressure1 = this.mass1 / volume1;
-
+    const chamber1 = this.computeFlowToVolume(node1, this.mass1, this.pressure1, volume1, this.conductance, dt);
+    this.mass1 = chamber1.mass;
+    this.pressure1 = chamber1.pressure;
 
     // Compute piston movement
     const motionSteps = cylinderMotionSubsteps();
@@ -4539,35 +4522,9 @@ class Cylinder1Out extends Cylinder1 {
     let volume1 = 100*(this.position.max - this.position.actual) * this.area + this.volumeMin;
     if (this.mass1 === 0) this.mass1 = this.pressure1 * volume1;
 
-    const m1 = node1.mass;
-    const m2 = this.mass1;
-    const n1_vol = node1.volume;
-    const flowConductance = fluidConductance(this.conductance, node1, null);
-
-    let dp = m1 / n1_vol - m2 / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k1_m = dt * dp * flowConductance;
-
-    dp = (m1 - 0.5*k1_m) / n1_vol - (m2 + 0.5*k1_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k2_m = dt * dp * flowConductance;
-
-    dp = (m1 - 0.5*k2_m) / n1_vol - (m2 + 0.5*k2_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k3_m = dt * dp * flowConductance;
-
-    dp = (m1 - k3_m) / n1_vol - (m2 + k3_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    const k4_m = dt * dp * flowConductance;
-
-    const dm = (k1_m + 2*k2_m + 2*k3_m + k4_m)/6;
-
-    node1.mass -= dm;
-    this.mass1 += dm;
-
-    node1.pressure = pressureFromMass(node1.mass, n1_vol);
-    clampNodeToReference(node1);
-    this.pressure1 = this.mass1 / volume1;
+    const chamber1 = this.computeFlowToVolume(node1, this.mass1, this.pressure1, volume1, this.conductance, dt);
+    this.mass1 = chamber1.mass;
+    this.pressure1 = chamber1.pressure;
 
     const motionSteps = cylinderMotionSubsteps();
     const motionDt = cylinderMotionDt(dt);
@@ -4735,68 +4692,13 @@ class Cylinder2 extends ComponentBase {
     if (this.mass1 === 0) this.mass1 = this.pressure1 * volume1;
     if (this.mass2 === 0) this.mass2 = this.pressure2 * volume2;
 
-    // Compute node1 flow
-    // Compute node1 mass flux
-    const m_n1 = node1.mass;
-    const m_p1 = this.mass1;
-    const n1_vol = node1.volume;
-    const flowConductance1 = fluidConductance(this.conductance, node1, null);
+    const chamber1 = this.computeFlowToVolume(node1, this.mass1, this.pressure1, volume1, this.conductance, dt);
+    this.mass1 = chamber1.mass;
+    this.pressure1 = chamber1.pressure;
 
-    let dp = m_n1 / n1_vol - m_p1 / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    let k1_m = dt * dp * flowConductance1;
-
-    dp = (m_n1 - 0.5*k1_m) / n1_vol - (m_p1 + 0.5*k1_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    let k2_m = dt * dp * flowConductance1;
-
-    dp = (m_n1 - 0.5*k2_m) / n1_vol - (m_p1 + 0.5*k2_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    let k3_m = dt * dp * flowConductance1;
-
-    dp = (m_n1 - k3_m) / n1_vol - (m_p1 + k3_m) / volume1;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    let k4_m = dt * dp * flowConductance1;
-
-    let dm = (k1_m + 2*k2_m + 2*k3_m + k4_m)/6;
-
-    node1.mass -= dm;
-    this.mass1 += dm;
-
-    node1.pressure = pressureFromMass(node1.mass, n1_vol);
-    clampNodeToReference(node1);
-    this.pressure1 = this.mass1 / volume1;
-
-    // Compute node2 flow
-    const m_n2 = node2.mass;
-    const m_p2 = this.mass2;
-    const n2_vol = node2.volume;
-    const flowConductance2 = fluidConductance(this.conductance, node2, null);
-
-    dp = m_n2 / n2_vol - m_p2 / volume2;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    k1_m = dt * dp * flowConductance2;
-
-    dp = (m_n2 - 0.5*k1_m) / n2_vol - (m_p2 + 0.5*k1_m) / volume2;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    k2_m = dt * dp * flowConductance2;
-
-    dp = (m_n2 - 0.5*k2_m) / n2_vol - (m_p2 + 0.5*k2_m) / volume2;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    k3_m = dt * dp * flowConductance2;
-
-    dp = (m_n2 - k3_m) / n2_vol - (m_p2 + k3_m) / volume2;
-    dp = Math.sign(dp) * Math.sqrt(Math.abs(dp))
-    k4_m = dt * dp * flowConductance2;
-
-    dm = (k1_m + 2*k2_m + 2*k3_m + k4_m)/6;
-
-    node2.mass -= dm;
-    this.mass2 += dm;
-
-    node2.pressure = pressureFromMass(node2.mass, n2_vol);
-    clampNodeToReference(node2);
-    this.pressure2 = this.mass2 / volume2;
+    const chamber2 = this.computeFlowToVolume(node2, this.mass2, this.pressure2, volume2, this.conductance, dt);
+    this.mass2 = chamber2.mass;
+    this.pressure2 = chamber2.pressure;
 
     // Compute piston movement
     const motionSteps = cylinderMotionSubsteps();
